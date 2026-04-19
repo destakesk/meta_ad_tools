@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -28,6 +29,7 @@ import { CurrentUser, type RequestUser } from '../auth/decorators/current-user.d
 import { CryptoService } from '../crypto/crypto.service.js';
 import { MfaService } from '../auth/services/mfa.service.js';
 import { PasswordService } from '../auth/services/password.service.js';
+import { PermissionResolver } from '../permissions/permission-resolver.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../auth/services/audit.service.js';
 
@@ -57,7 +59,42 @@ export class UsersController {
     private readonly crypto: CryptoService,
     private readonly audit: AuditService,
     private readonly config: ConfigService<AppConfig, true>,
+    private readonly resolver: PermissionResolver,
   ) {}
+
+  /**
+   * Returns the effective permission set for the current user. Drives
+   * frontend `useCan()` UI visibility. When `workspaceSlug` is supplied,
+   * both org-scoped and workspace-scoped permissions are merged.
+   *
+   * The API itself does NOT trust this endpoint — every mutating route still
+   * goes through PermissionGuard. This is purely a UI hint.
+   */
+  @Get('me/permissions')
+  async permissions(
+    @CurrentUser() user: RequestUser,
+    @Query('workspaceSlug') workspaceSlug?: string,
+  ) {
+    const orgMembership = await this.prisma.organizationMembership.findFirst({
+      where: { userId: user.userId },
+      orderBy: { createdAt: 'asc' },
+    });
+    const orgId = orgMembership?.organizationId;
+
+    let workspaceId: string | undefined;
+    if (workspaceSlug) {
+      const ws = await this.prisma.workspace.findFirst({
+        where: { slug: workspaceSlug, deletedAt: null, organizationId: orgId },
+      });
+      if (ws) workspaceId = ws.id;
+    }
+
+    const perms = await this.resolver.effectivePermissions(user.userId, {
+      organizationId: orgId,
+      workspaceId,
+    });
+    return { permissions: [...perms] };
+  }
 
   @Get('me')
   async me(@CurrentUser() user: RequestUser) {
