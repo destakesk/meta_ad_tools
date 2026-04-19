@@ -1,0 +1,56 @@
+# Production reference — extends infra/docker-compose.yml. Real deployment is
+# expected to use Kubernetes or similar; this file exists so the full stack can
+# be smoke-tested on a single host.
+services:
+  postgres:
+    extends:
+      file: docker-compose.yml
+      service: postgres
+    ports: []
+
+  redis:
+    extends:
+      file: docker-compose.yml
+      service: redis
+    ports: []
+
+  api:
+    image: ghcr.io/destakesk/metaflow-api:latest
+    container_name: metaflow-api
+    restart: unless-stopped
+    env_file: ../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [metaflow]
+
+  web:
+    image: ghcr.io/destakesk/metaflow-web:latest
+    container_name: metaflow-web
+    restart: unless-stopped
+    env_file: ../.env
+    depends_on:
+      api:
+        condition: service_started
+    networks: [metaflow]
+
+  nginx:
+    build:
+      context: ./nginx
+    container_name: metaflow-nginx
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks: [metaflow]
+
+networks:
+  metaflow:
+    external: false
