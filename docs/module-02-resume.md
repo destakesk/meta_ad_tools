@@ -1,10 +1,21 @@
 # Module 02 — Resume Guide
 
-**Current state:** Phase 12 of 18 complete (2026-04-20). **Backend complete + React Email templates live + OpenAPI/Swagger mounted.** Branch `main`. All commits pushed? Check `git log origin/main..HEAD` — push before starting a new session.
+**Current state:** Phase 13 of 18 complete (2026-04-20). **Backend + emails + swagger + frontend plumbing done.** Branch `main`. All commits pushed? Check `git log origin/main..HEAD` — push before starting a new session.
 
-**Resume from:** Phase 12 (Frontend auth client + middleware + hooks + Zustand store). All backend work done — remaining is: frontend (3 phases), integration tests, e2e, docs.
+**Resume from:** Phase 13 (Frontend auth PAGES — login/register/MFA setup+verify/password-forgot+reset/invite-accept). Plumbing (api client, middleware gate, hooks, store) is already in place.
 
-**Inspect the backend now:** `http://localhost:3001/api/docs` for Swagger UI, `http://localhost:3001/api/docs-json` for the OpenAPI JSON (27 paths).
+**Inspect the backend now:** `http://localhost:3001/api/docs` for Swagger UI, `http://localhost:3001/api/docs-json` for OpenAPI JSON (27 paths).
+
+**Frontend primitives ready to use in pages:**
+- `@/stores/use-auth-store` — Zustand; `setAccessToken`, `setMe`, `clear`
+- `@/lib/api/client` — `api.get/post/patch/delete` with auto-refresh
+- `@/lib/api/auth` — typed `authApi.{register,login,mfaSetup,mfaSetupInit,mfaVerify,logout,verifyEmail,forgotPassword,resetPassword,listSessions,revokeSession,me}`
+- `@/lib/auth/use-auth` — `useLogin`, `useLogout`, `useAuthBootstrap`, `useCurrentUser`, `useCurrentOrganizations`
+- `@/lib/auth/use-can` — `useCan('permission:key')` (needs `/api/users/me/permissions` endpoint added — small TODO for phase 13 prep)
+- `middleware.ts` — extended with auth gate; non-public routes w/o `metaflow_refresh` cookie redirect to `/login?redirect=…`
+
+**Small backend gap** to close in phase 13 prep (or as part of Phase 14):
+- `GET /api/users/me/permissions?workspaceSlug=optional` returning `{ permissions: string[] }` — PermissionResolver.effectivePermissions already exists; just needs a controller endpoint wrapping it.
 
 **Routes available:**
 - `/api/auth/*` (12 endpoints) — register, login, mfa/{setup,verify}, refresh, logout, logout-all, email/{verify,resend-verification}, password/{forgot,reset,change}, sessions (GET/DELETE)

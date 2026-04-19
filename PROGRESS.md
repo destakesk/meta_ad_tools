@@ -2,11 +2,11 @@
 
 ## Module 02 — Auth & User Management
 
-**Status:** ⏸ PAUSED at Phase 12/18 — 2026-04-20 (backend + emails + swagger)
+**Status:** ⏸ PAUSED at Phase 13/18 — 2026-04-20 (backend + emails + swagger + frontend plumbing)
 **Resume doc:** [`docs/module-02-resume.md`](./docs/module-02-resume.md)
 **Branch:** `main`
 
-### Phases shipped (12/18)
+### Phases shipped (13/18)
 
 | Phase | Commit | Summary |
 |-------|--------|---------|
@@ -23,6 +23,7 @@
 | 10    | (pushed `5c2fcf8`) | UsersController (profile + mfa regenerate/disable), OrganizationsService+Controller (current, invite, create workspace with RESERVED_SLUGS check), WorkspacesController (slug→workspace via WorkspaceAccessGuard w/ ORG_OWNER fallback), InvitationsController (public preview + accept w/ new-user register path). 6 controllers mounted. |
 | 11    | (hash in log)   | React Email templates (verify/password-reset/invitation) with shared Layout + CtaButton, TR copy, 24h/1h/7d expiry notices. EmailProcessor renders + sends both html + plaintext via Resend or dumps to tmp/mail/. tsconfig `jsx: react`. |
 | 17    | `ef21923`       | OpenAPI/Swagger at `/api/docs` (UI) + `/api/docs-json`. Bearer + refreshCookie security schemes. `@nestjs/swagger` CLI plugin in nest-cli.json with classValidatorShim + introspectComments. 27 paths auto-registered. |
+| 12    | (hash in log)   | Frontend plumbing: `useAuthStore` Zustand (not persisted), `apiFetch` with X-Requested-With header + Bearer + single-flight silent refresh on 401, typed `authApi` for every /auth endpoint, `useLogin/useLogout/useAuthBootstrap` + `useCan` hook, middleware extended with cookie-presence auth gate (redirects to /login?redirect=...). web type-check + build green. |
 
 ### Test counts
 
@@ -50,7 +51,7 @@ POST /api/auth/login     → 200 {step:mfa_setup_required, mfaSetupToken}
   (full register → verify → login flow live verified)
 ```
 
-### Remaining phases (6/18)
+### Remaining phases (5/18)
 
 See [`docs/module-02-resume.md`](./docs/module-02-resume.md). Summary:
 - Phase 12–14: Frontend (api client, middleware, auth pages, app shell)
