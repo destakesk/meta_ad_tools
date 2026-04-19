@@ -1,0 +1,27 @@
+// Prisma schema — metaflow
+// Module 01 starts with only HealthCheck. User/Session/Organization models land in Module 02.
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../generated/client"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// HealthCheck — append-only log of service health probe results.
+/// Used by the API to record Postgres/Redis status transitions.
+model HealthCheck {
+  id        String   @id @default(cuid())
+  service   String
+  status    String
+  latencyMs Int      @map("latency_ms")
+  message   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([service, createdAt])
+  @@map("health_checks")
+}

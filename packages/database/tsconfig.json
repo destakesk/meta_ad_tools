@@ -1,0 +1,12 @@
+{
+  "extends": "@metaflow/tsconfig/library.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["src/**/*", "prisma/**/*.ts", "generated/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
