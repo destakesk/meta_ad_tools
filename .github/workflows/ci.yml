@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint-type-test:
+    name: lint, type-check, test
+    runs-on: ubuntu-24.04
+    env:
+      DATABASE_URL: postgresql://metaflow:metaflow_test@localhost:5432/metaflow_test?schema=public
+      REDIS_URL: redis://localhost:6379
+      APP_URL: http://localhost:3000
+      API_URL: http://localhost:3001
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      # 32-byte base64 dummy — CI only; real value lives in deployment secrets.
+      ENCRYPTION_KEY: dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleXRlc3RrZXk=
+      NODE_ENV: test
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: metaflow
+          POSTGRES_PASSWORD: metaflow_test
+          POSTGRES_DB: metaflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U metaflow"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high --prod
+        continue-on-error: false
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Apply migrations
+        run: pnpm --filter @metaflow/database exec prisma migrate deploy
+
+      - name: Build shared packages
+        run: |
+          pnpm --filter @metaflow/shared-types build
+          pnpm --filter @metaflow/database build
+
+      - name: Type-check
+        run: pnpm type-check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build apps
+        run: pnpm build
+
+      - name: Upload coverage
+        if: success()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: coverage
+          path: apps/*/coverage
+          if-no-files-found: ignore
+          retention-days: 7
