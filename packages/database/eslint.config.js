@@ -5,11 +5,4 @@ export default [
   {
     ignores: ['generated/**', 'dist/**'],
   },
-  {
-    languageOptions: {
-      parserOptions: {
-        project: './tsconfig.json',
-      },
-    },
-  },
 ];

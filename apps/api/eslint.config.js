@@ -5,11 +5,4 @@ export default [
   {
     ignores: ['dist/**', 'coverage/**'],
   },
-  {
-    languageOptions: {
-      parserOptions: {
-        project: './tsconfig.json',
-      },
-    },
-  },
 ];
