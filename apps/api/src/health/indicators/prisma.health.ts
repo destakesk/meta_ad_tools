@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { HealthCheckError, HealthIndicator } from '@nestjs/terminus';
-import type { HealthIndicatorResult } from '@nestjs/terminus';
 
 import { PrismaService } from '../../prisma/prisma.service.js';
+
+import type { HealthIndicatorResult } from '@nestjs/terminus';
 
 /**
  * Executes `SELECT 1` with a hard timeout. Returns `connected`/`disconnected`

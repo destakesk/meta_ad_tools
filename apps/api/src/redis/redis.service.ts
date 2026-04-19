@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import IORedis from 'ioredis';
-import type { Redis } from 'ioredis';
 
 import type { AppConfig } from '../config/configuration.js';
+import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import type { Redis } from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -51,7 +51,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       }, timeoutMs);
     });
     try {
-      const result = await Promise.race([pingPromise, timeout]);
+      const result: unknown = await Promise.race([pingPromise, timeout]);
       return result === 'PONG';
     } catch {
       return false;

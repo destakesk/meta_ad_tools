@@ -5,7 +5,9 @@ import { HealthController } from './health.controller.js';
 describe('HealthController.live', () => {
   it('returns ok with timestamp + uptime', () => {
     const controller = new HealthController(
-      { check: async () => ({ status: 'ok', info: {}, error: {}, details: {} }) } as never,
+      {
+        check: () => Promise.resolve({ status: 'ok', info: {}, error: {}, details: {} }),
+      } as never,
       {} as never,
       {} as never,
     );

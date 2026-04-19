@@ -5,7 +5,6 @@
     "moduleResolution": "Node",
     "target": "ES2022",
     "outDir": "./dist",
-    "rootDir": "./src",
     "verbatimModuleSyntax": false,
     "isolatedModules": false,
     "noEmit": true,
@@ -13,6 +12,6 @@
     "declarationMap": false,
     "incremental": false
   },
-  "include": ["src/**/*", "prisma/**/*.ts", "generated/**/*"],
+  "include": ["src/**/*", "prisma/seed.ts", "generated/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

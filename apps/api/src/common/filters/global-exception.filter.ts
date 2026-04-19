@@ -1,4 +1,5 @@
 import { Catch, HttpException, HttpStatus, Logger } from '@nestjs/common';
+
 import type { ArgumentsHost, ExceptionFilter } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
@@ -60,10 +61,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return {
         status,
         code: explicitCode ?? this.codeFor(status),
-        message:
-          typeof bodyObj['message'] === 'string'
-            ? (bodyObj['message'] as string)
-            : exception.message,
+        message: typeof bodyObj['message'] === 'string' ? bodyObj['message'] : exception.message,
         details: Array.isArray(bodyObj['message']) ? bodyObj['message'] : undefined,
       };
     }

@@ -1,8 +1,9 @@
 import { BadRequestException, HttpStatus, NotFoundException } from '@nestjs/common';
-import type { ArgumentsHost } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GlobalExceptionFilter } from './global-exception.filter.js';
+
+import type { ArgumentsHost } from '@nestjs/common';
 
 function makeHost(): {
   host: ArgumentsHost;

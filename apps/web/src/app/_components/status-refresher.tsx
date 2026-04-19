@@ -4,8 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-import { fetchHealth } from '@/lib/api-client';
 import type { HealthResponse } from '@metaflow/shared-types';
+
+import { fetchHealth } from '@/lib/api-client';
 
 interface Props {
   initialData: HealthResponse;

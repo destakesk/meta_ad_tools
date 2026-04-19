@@ -17,7 +17,7 @@ export const paginationMetaSchema = z.object({
 });
 export type PaginationMeta = z.infer<typeof paginationMetaSchema>;
 
-export type Paginated<T> = {
+export interface Paginated<T> {
   items: T[];
   meta: PaginationMeta;
-};
+}

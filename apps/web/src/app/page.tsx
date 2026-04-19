@@ -1,11 +1,11 @@
+import { StatusRefresher } from './_components/status-refresher';
+
+import type { HealthResponse, ServiceStatus } from '@metaflow/shared-types';
 import type { ReactElement } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchHealth } from '@/lib/api-client';
-import type { HealthResponse, ServiceStatus } from '@metaflow/shared-types';
-
-import { StatusRefresher } from './_components/status-refresher';
 
 export const dynamic = 'force-dynamic';
 

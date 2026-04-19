@@ -1,6 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@metaflow/database';
+import { Injectable, Logger } from '@nestjs/common';
+
+import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 
 /**
  * Nest wrapper around the shared Prisma client.

@@ -1,13 +1,18 @@
 import { randomBytes } from 'node:crypto';
-import { ConfigService } from '@nestjs/config';
+
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { CryptoService } from './crypto.service.js';
 
-function makeConfig(keyB64: string): ConfigService {
+import type { AppConfig } from '../config/configuration.js';
+import type { ConfigService } from '@nestjs/config';
+
+type TestConfig = ConfigService<AppConfig, true>;
+
+function makeConfig(keyB64: string): TestConfig {
   return {
     get: (_path: string, _opts?: unknown) => ({ key: keyB64 }),
-  } as unknown as ConfigService;
+  } as unknown as TestConfig;
 }
 
 const keyA = randomBytes(32).toString('base64');

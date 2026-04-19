@@ -1,10 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
-import type { HealthCheckResult } from '@nestjs/terminus';
 import { SkipThrottle } from '@nestjs/throttler';
 
 import { PrismaHealthIndicator } from './indicators/prisma.health.js';
 import { RedisHealthIndicator } from './indicators/redis.health.js';
+
+import type { HealthCheckResult } from '@nestjs/terminus';
 
 /**
  * Three probes:
