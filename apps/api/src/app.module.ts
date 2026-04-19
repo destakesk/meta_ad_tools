@@ -1,3 +1,4 @@
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -20,6 +21,15 @@ import { SessionModule } from './session/session.module.js';
 
 import type { AppConfig } from './config/configuration.js';
 
+/**
+ * Module 02 Phase 7: swapped the default in-memory ThrottlerStorage for a
+ * Redis-backed one (via @nest-lab/throttler-storage-redis) so rate-limit state
+ * survives restarts and works across horizontally-scaled API replicas.
+ *
+ * Per-route custom trackers (ip+email, user, session) are deferred to Phase 9
+ * where auth endpoints use explicit @Throttle() overrides with different
+ * limits per route.
+ */
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -51,7 +61,13 @@ import type { AppConfig } from './config/configuration.js';
       inject: [ConfigService],
       useFactory: (config: ConfigService<AppConfig, true>) => {
         const { ttl, limit } = config.get('throttle', { infer: true });
-        return [{ ttl: ttl * 1000, limit }];
+        const { url } = config.get('redis', { infer: true });
+        return {
+          throttlers: [{ name: 'default', ttl: ttl * 1000, limit }],
+          // Pass the URL so the storage manages its own Redis connection
+          // (independent of RedisService lifecycle).
+          storage: new ThrottlerStorageRedisService(url),
+        };
       },
     }),
     PrismaModule,
