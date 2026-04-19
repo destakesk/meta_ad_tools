@@ -1,17 +1,22 @@
+import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
+import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { LoggerModule } from './common/logging/logger.module.js';
 import { configuration } from './config/configuration.js';
 import { envValidationSchema } from './config/env.validation.js';
 import { CryptoModule } from './crypto/crypto.module.js';
+import { EmailModule } from './email/email.module.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { QueueModule } from './queue/queue.module.js';
 import { RedisModule } from './redis/redis.module.js';
+import { SessionModule } from './session/session.module.js';
 
 import type { AppConfig } from './config/configuration.js';
 
@@ -22,11 +27,26 @@ import type { AppConfig } from './config/configuration.js';
       cache: true,
       load: [configuration],
       validationSchema: envValidationSchema,
-      validationOptions: {
-        abortEarly: false,
-      },
+      validationOptions: { abortEarly: false },
     }),
     LoggerModule,
+    ScheduleModule.forRoot(),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService<AppConfig, true>) => {
+        const { url, prefix } = config.get('redis', { infer: true });
+        const parsed = new URL(url);
+        return {
+          connection: {
+            host: parsed.hostname,
+            port: parsed.port ? parseInt(parsed.port, 10) : 6379,
+            password: parsed.password || undefined,
+            username: parsed.username || undefined,
+          },
+          prefix: `${prefix}bull`,
+        };
+      },
+    }),
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService<AppConfig, true>) => {
@@ -39,6 +59,9 @@ import type { AppConfig } from './config/configuration.js';
     CryptoModule,
     HealthModule,
     AuthModule,
+    AuditModule,
+    EmailModule,
+    SessionModule,
     QueueModule,
   ],
   providers: [
