@@ -14,6 +14,7 @@ import { envValidationSchema } from './config/env.validation.js';
 import { CryptoModule } from './crypto/crypto.module.js';
 import { EmailModule } from './email/email.module.js';
 import { HealthModule } from './health/health.module.js';
+import { PermissionsModule } from './permissions/permissions.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { QueueModule } from './queue/queue.module.js';
 import { RedisModule } from './redis/redis.module.js';
@@ -78,6 +79,7 @@ import type { AppConfig } from './config/configuration.js';
     AuditModule,
     EmailModule,
     SessionModule,
+    PermissionsModule,
     QueueModule,
   ],
   providers: [
