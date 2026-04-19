@@ -1,8 +1,14 @@
 # Module 02 — Resume Guide
 
-**Current state:** Phase 7 of 18 complete (2026-04-20). Branch `main`. All commits pushed? Check `git log origin/main..HEAD` — push before starting a new session.
+**Current state:** Phase 9 of 18 complete (2026-04-20). Branch `main`. All commits pushed? Check `git log origin/main..HEAD` — push before starting a new session.
 
-**Resume from:** Phase 8 (Guards + decorators + PermissionResolver).
+**Resume from:** Phase 10 (Users/Orgs/Workspaces/Invitations controllers).
+
+**Huge milestone reached:** the full `register → email verify → login` flow is end-to-end verified via curl. Auth-session endpoints (`GET/DELETE /api/auth/sessions`) also already shipped in Phase 9's AuthController. See PROGRESS.md for live-smoke excerpt.
+
+**Two surprises to know:**
+1. `shared-types` now builds **dual ESM + CJS** (`index.mjs` + `index.js` via tsup). NestJS runtime is CJS; it requires the CJS copy. `package.json.exports` has both `import` + `require`.
+2. API has a **global `api` prefix** (set in `main.ts`), with `/health*` excluded. All auth routes live at `/api/auth/*`.
 
 ---
 
@@ -61,7 +67,11 @@ Module 01 (13) + password(5) + token(5) + mfa(7).
 
 Each is independently committable. Same Conventional Commits cadence as Module 01.
 
-### Phase 8 — Guards + decorators + PermissionResolver
+### Phase 8 — Guards + decorators + PermissionResolver — ✅ SHIPPED
+
+### Phase 9 — Auth controller — ✅ SHIPPED (`ca01b07`)
+
+### Phase 8 archival notes (already done)
 
 **Files:**
 - `apps/api/src/auth/strategies/{jwt,jwt-refresh,local}.strategy.ts`

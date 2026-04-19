@@ -2,11 +2,11 @@
 
 ## Module 02 — Auth & User Management
 
-**Status:** ⏸ PAUSED at Phase 7/18 — 2026-04-20
+**Status:** ⏸ PAUSED at Phase 9/18 — 2026-04-20
 **Resume doc:** [`docs/module-02-resume.md`](./docs/module-02-resume.md)
 **Branch:** `main`
 
-### Phases shipped (7/18)
+### Phases shipped (9/18)
 
 | Phase | Commit | Summary |
 |-------|--------|---------|
@@ -17,13 +17,15 @@
 | 4     | `1e60705` | env + Joi config: auth, MFA, email, cookies, token TTLs; JWT_SECRET + MFA_TOKEN_SECRET isolation; COOKIE_SECURE forced true in prod |
 | 5     | `eaf57b2` | primitives: `PasswordService` (bcrypt + zxcvbn-ts), `TokenService` (HS256 JWT + SHA-256 opaque), `MfaService` (otplib + backup codes), `SessionService` (rotate w/ theft detection), `AuditService` (BullMQ producer), `AuthRateLimitService` (Redis counters). **30 unit tests green.** |
 | 6     | `fc8ef34` | BullMQ queues: audit-queue (AuditProcessor → `audit_logs` rows), email-queue (Resend + tmp/mail dev fallback), session-cleanup `@Cron('EVERY_HOUR')` |
-| 7     | `61f7c2e` | Redis-backed rate limiting (`@nest-lab/throttler-storage-redis`); ip extraction helper (CF-Connecting-IP → X-Forwarded-For → req.ip). Per-route custom trackers deferred to Phase 9. |
+| 7     | `61f7c2e` | Redis-backed rate limiting (`@nest-lab/throttler-storage-redis`); ip extraction helper |
+| 8     | (hash TBD) | Guards (JwtAuth/WorkspaceAccess/Permission/EmailVerified/CustomHeader), decorators (@Public/@CurrentUser/@CurrentSession/@CurrentWorkspace/@RequirePermission), PermissionResolver with ORG_OWNER→WS_ADMIN inheritance + 60s Redis cache + 6 unit tests |
+| 9     | `ca01b07` | AuthController: 12 endpoints (register/login/mfa/refresh/logout/email/password/sessions) + AuthService orchestration + DTOs + cookie helpers + ApiResponseInterceptor + global prefix `api` + cookie-parser; shared-types now dual ESM+CJS so nest CJS runtime can require() it. **Live smoke verified end-to-end.** |
 
 ### Test counts
 
-- `@metaflow/api` unit: 43 tests (Module 01: 13 + Module 02 primitives: 30)
-  - crypto: 9, global-exception: 3, health.live: 1 (from Module 01)
-  - password: 5, token: 5, mfa: 7, **plus Phase 8–15 tests coming**
+- `@metaflow/api` unit: **36 tests** green (Module 01: 13 + Module 02 primitives+resolver: 23)
+  - password: 5, token: 5, mfa: 7, permission-resolver: 6
+  - plus Phase 10-15 tests to come
 
 ### Decisions locked
 
@@ -34,21 +36,21 @@
 - Access token storage (frontend): in-memory Zustand (no localStorage)
 - Permissions: 41 rows; ORG_OWNER inheritance = implicit WS_ADMIN (runtime resolver, not seeded)
 
-### Live smoke (Phase 7 exit)
+### Live smoke (Phase 9 exit)
 
 ```
-api boots with 12 modules: Config, Logger, Schedule, Bull, Throttler(Redis),
-Prisma, Redis, Crypto, Health, Auth, Audit, Email, Session, Queue
-/health/ready → 200 {database:up, redis:up}
-rate limit state now persists across restarts (Redis-backed)
+api boots with 14 modules (+ Permissions, + Auth with controller)
+POST /api/auth/register  → 201 {userId, emailVerificationRequired:true}
+POST /api/auth/login     → 403 email_not_verified (pre-verify)
+POST /api/auth/email/verify (token from tmp/mail/*.json) → 200 {ok:true}
+POST /api/auth/login     → 200 {step:mfa_setup_required, mfaSetupToken}
+  (full register → verify → login flow live verified)
 ```
 
-### Remaining phases (11/18)
+### Remaining phases (9/18)
 
 See [`docs/module-02-resume.md`](./docs/module-02-resume.md). Summary:
-- Phase 8: Guards (JwtAuth/WorkspaceAccess/Permission) + decorators + PermissionResolver
-- Phase 9: Auth controller (12 endpoints: register/login/MFA/refresh/logout/email/password)
-- Phase 10: Users/Orgs/Workspaces/Invitations/Sessions controllers
+- Phase 10: Users/Orgs/Workspaces/Invitations controllers (auth-session endpoints already in phase 9)
 - Phase 11: React Email templates (TR default)
 - Phase 12–14: Frontend (api client, middleware, auth pages, app shell)
 - Phase 15: ≥15 integration scenarios (testcontainers)
