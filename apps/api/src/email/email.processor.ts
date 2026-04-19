@@ -4,10 +4,14 @@ import { join } from 'node:path';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { render } from '@react-email/render';
 import { Resend } from 'resend';
 import type { Job } from 'bullmq';
 
 import { EMAIL_QUEUE } from './email.service.js';
+import { InvitationTemplate } from './templates/invitation.js';
+import { PasswordResetTemplate } from './templates/password-reset.js';
+import { VerifyEmailTemplate } from './templates/verify-email.js';
 
 import type { AppConfig } from '../config/configuration.js';
 import type {
@@ -18,15 +22,11 @@ import type {
 } from './email.service.js';
 
 /**
- * Renders a template + delivers the mail.
+ * Renders + delivers transactional mail.
  *
- * When RESEND_API_KEY is unset (dev / CI), the processor writes the rendered
- * HTML + the raw token into `tmp/mail/<timestamp>-<name>.json`. The Playwright
- * mailbox helper reads that directory to extract verification / reset /
- * invitation links during e2e runs.
- *
- * The actual React Email templates ship in Phase 11; for now we render a
- * minimal literal-string fallback so the pipeline is testable end-to-end.
+ * When RESEND_API_KEY is unset (dev / CI), writes rendered HTML + raw token
+ * into `tmp/mail/<timestamp>-<name>.json`. Playwright's mailbox helper reads
+ * that directory to extract verify / reset / invitation tokens during e2e runs.
  */
 @Processor(EMAIL_QUEUE)
 export class EmailProcessor extends WorkerHost {
@@ -66,10 +66,14 @@ export class EmailProcessor extends WorkerHost {
 
   private async sendVerifyEmail(data: VerifyEmailJob): Promise<void> {
     const link = `${this.verifyUrlBase}?token=${encodeURIComponent(data.token)}`;
+    const element = VerifyEmailTemplate({ fullName: data.fullName, verifyUrl: link });
+    const html = await render(element);
+    const text = await render(element, { plainText: true });
     await this.send({
       to: data.to,
       subject: 'Email adresini doğrula — Metaflow',
-      html: `<p>Merhaba ${data.fullName},</p><p>Hesabını aktifleştirmek için <a href="${link}">buraya tıkla</a>.</p>`,
+      html,
+      text,
       jobName: 'verify-email',
       link,
     });
@@ -77,10 +81,14 @@ export class EmailProcessor extends WorkerHost {
 
   private async sendPasswordReset(data: PasswordResetJob): Promise<void> {
     const link = `${this.resetUrlBase}?token=${encodeURIComponent(data.token)}`;
+    const element = PasswordResetTemplate({ fullName: data.fullName, resetUrl: link });
+    const html = await render(element);
+    const text = await render(element, { plainText: true });
     await this.send({
       to: data.to,
       subject: 'Şifre sıfırlama — Metaflow',
-      html: `<p>Merhaba ${data.fullName},</p><p>Yeni şifre belirlemek için <a href="${link}">buraya tıkla</a> (1 saat geçerli).</p>`,
+      html,
+      text,
       jobName: 'password-reset',
       link,
     });
@@ -88,10 +96,19 @@ export class EmailProcessor extends WorkerHost {
 
   private async sendInvitation(data: InvitationJob): Promise<void> {
     const link = `${this.invitationUrlBase}?token=${encodeURIComponent(data.token)}`;
+    const element = InvitationTemplate({
+      inviterName: data.inviterName,
+      organizationName: data.organizationName,
+      role: data.role,
+      acceptUrl: link,
+    });
+    const html = await render(element);
+    const text = await render(element, { plainText: true });
     await this.send({
       to: data.to,
       subject: `${data.inviterName} seni ${data.organizationName}'a davet etti — Metaflow`,
-      html: `<p>${data.inviterName}, seni <strong>${data.organizationName}</strong> organizasyonuna <strong>${data.role}</strong> olarak davet etti.</p><p><a href="${link}">Daveti kabul et</a> (7 gün geçerli).</p>`,
+      html,
+      text,
       jobName: 'invitation',
       link,
     });
@@ -101,6 +118,7 @@ export class EmailProcessor extends WorkerHost {
     to: string;
     subject: string;
     html: string;
+    text: string;
     jobName: EmailJobName;
     link: string;
   }): Promise<void> {
@@ -110,18 +128,25 @@ export class EmailProcessor extends WorkerHost {
         to: input.to,
         subject: input.subject,
         html: input.html,
+        text: input.text,
       });
       this.logger.log({ to: input.to, job: input.jobName }, 'email sent via resend');
       return;
     }
 
-    // Dev / CI fallback: dump to tmp/mail/ so e2e tests can read the token.
+    // Dev / CI fallback.
     await mkdir(this.mailDir, { recursive: true });
     const file = join(this.mailDir, `${Date.now().toString()}-${input.jobName}-${input.to}.json`);
     await writeFile(
       file,
       JSON.stringify(
-        { to: input.to, subject: input.subject, link: input.link, html: input.html },
+        {
+          to: input.to,
+          subject: input.subject,
+          link: input.link,
+          html: input.html,
+          text: input.text,
+        },
         null,
         2,
       ),
