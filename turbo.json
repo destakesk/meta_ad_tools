@@ -1,0 +1,58 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "tui",
+  "globalDependencies": [".env", ".env.*", "!.env.example"],
+  "globalEnv": ["NODE_ENV", "CI"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "^db:generate"],
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**",
+        "build/**"
+      ],
+      "env": [
+        "NODE_ENV",
+        "APP_URL",
+        "API_URL",
+        "DATABASE_URL",
+        "SENTRY_DSN_WEB",
+        "SENTRY_DSN_API",
+        "SENTRY_ENVIRONMENT",
+        "NEXT_PUBLIC_APP_URL",
+        "NEXT_PUBLIC_API_URL"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["^db:generate"]
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": [".eslintcache"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"],
+      "env": ["NODE_ENV", "DATABASE_URL", "REDIS_URL"]
+    },
+    "type-check": {
+      "dependsOn": ["^build", "^db:generate"],
+      "outputs": []
+    },
+    "db:generate": {
+      "cache": true,
+      "inputs": ["prisma/schema.prisma"],
+      "outputs": ["generated/**"]
+    },
+    "db:migrate": {
+      "cache": false,
+      "persistent": false
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

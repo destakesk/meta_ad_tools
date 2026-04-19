@@ -1,0 +1,11 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/tsconfig" },
+    { "path": "./packages/eslint-config" },
+    { "path": "./packages/shared-types" },
+    { "path": "./packages/database" },
+    { "path": "./apps/api" },
+    { "path": "./apps/web" }
+  ]
+}
