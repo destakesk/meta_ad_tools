@@ -12,6 +12,7 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module.js';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter.js';
 import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor.js';
+import { setupOpenApi } from './openapi.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
@@ -60,6 +61,8 @@ async function bootstrap(): Promise<void> {
     exposedHeaders: ['X-Request-Id'],
     maxAge: 86400,
   });
+
+  setupOpenApi(app);
 
   app.enableShutdownHooks();
 
