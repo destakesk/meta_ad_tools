@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
 
+import { AuthController } from './auth.controller.js';
+import { AuthService } from './auth.service.js';
+import { EmailModule } from '../email/email.module.js';
 import { AuditService } from './services/audit.service.js';
 import { AuthRateLimitService } from './services/auth-rate-limit.service.js';
 import { MfaService } from './services/mfa.service.js';
@@ -14,12 +17,11 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { PermissionGuard } from './guards/permission.guard.js';
 import { WorkspaceAccessGuard } from './guards/workspace-access.guard.js';
 
-/**
- * Auth surface. Controllers + remaining strategies land in Phase 9.
- */
 @Module({
-  imports: [PassportModule.register({ session: false, defaultStrategy: 'jwt' })],
+  imports: [PassportModule.register({ session: false, defaultStrategy: 'jwt' }), EmailModule],
+  controllers: [AuthController],
   providers: [
+    AuthService,
     PasswordService,
     TokenService,
     MfaService,
@@ -34,6 +36,7 @@ import { WorkspaceAccessGuard } from './guards/workspace-access.guard.js';
     CustomHeaderGuard,
   ],
   exports: [
+    AuthService,
     PasswordService,
     TokenService,
     MfaService,

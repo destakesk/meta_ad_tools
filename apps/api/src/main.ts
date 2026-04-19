@@ -5,11 +5,13 @@ import './instrument.js';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import compression from 'compression';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module.js';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter.js';
+import { ApiResponseInterceptor } from './common/interceptors/api-response.interceptor.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
@@ -17,7 +19,12 @@ async function bootstrap(): Promise<void> {
   });
 
   app.useLogger(app.get(Logger));
+  app.setGlobalPrefix('api', {
+    exclude: ['health', 'health/live', 'health/ready'],
+  });
   app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(new ApiResponseInterceptor());
+  app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
