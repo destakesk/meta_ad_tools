@@ -1,10 +1,16 @@
 # Module 02 — Resume Guide
 
-**Current state:** Phase 9 of 18 complete (2026-04-20). Branch `main`. All commits pushed? Check `git log origin/main..HEAD` — push before starting a new session.
+**Current state:** Phase 10 of 18 complete (2026-04-20). **Backend API surface is complete — 6 controllers mounted, end-to-end `register→verify→login` flow verified.** Branch `main`. All commits pushed? Check `git log origin/main..HEAD` — push before starting a new session.
 
-**Resume from:** Phase 10 (Users/Orgs/Workspaces/Invitations controllers).
+**Resume from:** Phase 11 (React Email templates). Everything backend is wired.
 
-**Huge milestone reached:** the full `register → email verify → login` flow is end-to-end verified via curl. Auth-session endpoints (`GET/DELETE /api/auth/sessions`) also already shipped in Phase 9's AuthController. See PROGRESS.md for live-smoke excerpt.
+**Routes available:**
+- `/api/auth/*` (12 endpoints) — register, login, mfa/{setup,verify}, refresh, logout, logout-all, email/{verify,resend-verification}, password/{forgot,reset,change}, sessions (GET/DELETE)
+- `/api/users/me` (GET, PATCH), `/api/users/me/mfa/regenerate-backup-codes`, `/api/users/me/mfa/disable`
+- `/api/organizations/current`, `/api/organizations/:orgId/members/invite`, `/api/organizations/:orgId/workspaces`
+- `/api/workspaces/:slug`
+- `/api/invitations/preview` (public), `/api/invitations/accept` (public)
+- `/health`, `/health/live`, `/health/ready` (no api prefix)
 
 **Two surprises to know:**
 1. `shared-types` now builds **dual ESM + CJS** (`index.mjs` + `index.js` via tsup). NestJS runtime is CJS; it requires the CJS copy. `package.json.exports` has both `import` + `require`.

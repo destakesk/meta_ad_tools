@@ -2,11 +2,11 @@
 
 ## Module 02 — Auth & User Management
 
-**Status:** ⏸ PAUSED at Phase 9/18 — 2026-04-20
+**Status:** ⏸ PAUSED at Phase 10/18 — 2026-04-20 (backend API complete)
 **Resume doc:** [`docs/module-02-resume.md`](./docs/module-02-resume.md)
 **Branch:** `main`
 
-### Phases shipped (9/18)
+### Phases shipped (10/18)
 
 | Phase | Commit | Summary |
 |-------|--------|---------|
@@ -20,6 +20,7 @@
 | 7     | `61f7c2e` | Redis-backed rate limiting (`@nest-lab/throttler-storage-redis`); ip extraction helper |
 | 8     | (hash TBD) | Guards (JwtAuth/WorkspaceAccess/Permission/EmailVerified/CustomHeader), decorators (@Public/@CurrentUser/@CurrentSession/@CurrentWorkspace/@RequirePermission), PermissionResolver with ORG_OWNER→WS_ADMIN inheritance + 60s Redis cache + 6 unit tests |
 | 9     | `ca01b07` | AuthController: 12 endpoints (register/login/mfa/refresh/logout/email/password/sessions) + AuthService orchestration + DTOs + cookie helpers + ApiResponseInterceptor + global prefix `api` + cookie-parser; shared-types now dual ESM+CJS so nest CJS runtime can require() it. **Live smoke verified end-to-end.** |
+| 10    | (hash TBD) | UsersController (profile + mfa regenerate/disable), OrganizationsService+Controller (current, invite, create workspace with RESERVED_SLUGS check), WorkspacesController (slug→workspace via WorkspaceAccessGuard w/ ORG_OWNER fallback), InvitationsController (public preview + accept w/ new-user register path). 6 controllers mounted. |
 
 ### Test counts
 
@@ -47,11 +48,10 @@ POST /api/auth/login     → 200 {step:mfa_setup_required, mfaSetupToken}
   (full register → verify → login flow live verified)
 ```
 
-### Remaining phases (9/18)
+### Remaining phases (8/18)
 
 See [`docs/module-02-resume.md`](./docs/module-02-resume.md). Summary:
-- Phase 10: Users/Orgs/Workspaces/Invitations controllers (auth-session endpoints already in phase 9)
-- Phase 11: React Email templates (TR default)
+- Phase 11: React Email templates (TR default) — replace string stubs in EmailProcessor
 - Phase 12–14: Frontend (api client, middleware, auth pages, app shell)
 - Phase 15: ≥15 integration scenarios (testcontainers)
 - Phase 16: 4 Playwright e2e
