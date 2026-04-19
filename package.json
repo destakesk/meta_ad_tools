@@ -27,7 +27,7 @@
     "db:reset": "pnpm --filter @metaflow/database db:reset",
     "db:studio": "pnpm --filter @metaflow/database db:studio",
     "clean": "turbo run clean && rm -rf node_modules",
-    "prepare": "node -e \"try{require('husky').install()}catch(e){}\""
+    "prepare": "husky"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",
