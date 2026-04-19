@@ -29,10 +29,38 @@ export interface AppConfig {
     dsn: string | undefined;
     environment: string;
   };
-  jwt: {
-    secret: string | undefined;
-    expiresIn: string;
+  auth: {
+    jwtSecret: string;
+    accessTokenTtlSeconds: number;
+    refreshTokenTtlSeconds: number;
+    bcryptCost: number;
+    passwordResetTtlSeconds: number;
+    emailVerifyTtlSeconds: number;
+    invitationTtlSeconds: number;
   };
+  mfa: {
+    disableAllowed: boolean;
+    tokenSecret: string;
+    issuer: string;
+    setupTokenTtlSeconds: number;
+    challengeTokenTtlSeconds: number;
+  };
+  cookies: {
+    domain: string;
+    secure: boolean;
+  };
+  email: {
+    resendApiKey: string | undefined;
+    from: string;
+    verifyUrlBase: string;
+    resetUrlBase: string;
+    invitationUrlBase: string;
+  };
+}
+
+function parseBool(value: string | undefined, fallback: boolean): boolean {
+  if (value === undefined) return fallback;
+  return value.toLowerCase() === 'true' || value === '1';
 }
 
 export const configuration = (): AppConfig => ({
@@ -65,8 +93,34 @@ export const configuration = (): AppConfig => ({
     dsn: process.env['SENTRY_DSN_API'] ?? undefined,
     environment: process.env['SENTRY_ENVIRONMENT'] ?? 'development',
   },
-  jwt: {
-    secret: process.env['JWT_SECRET'],
-    expiresIn: process.env['JWT_EXPIRES_IN'] ?? '7d',
+  auth: {
+    jwtSecret: process.env['JWT_SECRET'] ?? '',
+    accessTokenTtlSeconds: parseInt(process.env['ACCESS_TOKEN_TTL_SECONDS'] ?? '900', 10),
+    refreshTokenTtlSeconds: parseInt(process.env['REFRESH_TOKEN_TTL_SECONDS'] ?? '604800', 10),
+    bcryptCost: parseInt(process.env['BCRYPT_COST'] ?? '12', 10),
+    passwordResetTtlSeconds: parseInt(
+      process.env['PASSWORD_RESET_TOKEN_TTL_SECONDS'] ?? '3600',
+      10,
+    ),
+    emailVerifyTtlSeconds: parseInt(process.env['EMAIL_VERIFY_TOKEN_TTL_SECONDS'] ?? '86400', 10),
+    invitationTtlSeconds: parseInt(process.env['INVITATION_TTL_SECONDS'] ?? '604800', 10),
+  },
+  mfa: {
+    disableAllowed: parseBool(process.env['MFA_DISABLE_ALLOWED'], false),
+    tokenSecret: process.env['MFA_TOKEN_SECRET'] ?? '',
+    issuer: process.env['MFA_ISSUER'] ?? 'Metaflow',
+    setupTokenTtlSeconds: parseInt(process.env['MFA_SETUP_TOKEN_TTL_SECONDS'] ?? '300', 10),
+    challengeTokenTtlSeconds: parseInt(process.env['MFA_CHALLENGE_TOKEN_TTL_SECONDS'] ?? '300', 10),
+  },
+  cookies: {
+    domain: process.env['COOKIE_DOMAIN'] ?? 'localhost',
+    secure: parseBool(process.env['COOKIE_SECURE'], false),
+  },
+  email: {
+    resendApiKey: process.env['RESEND_API_KEY'] ?? undefined,
+    from: process.env['EMAIL_FROM'] ?? 'noreply@metaflow.app',
+    verifyUrlBase: process.env['EMAIL_VERIFY_URL_BASE'] ?? 'http://localhost:3000/verify-email',
+    resetUrlBase: process.env['PASSWORD_RESET_URL_BASE'] ?? 'http://localhost:3000/reset-password',
+    invitationUrlBase: process.env['INVITATION_URL_BASE'] ?? 'http://localhost:3000/invite/accept',
   },
 });
