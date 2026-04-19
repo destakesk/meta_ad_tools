@@ -11,11 +11,10 @@
 - `@/lib/api/client` — `api.get/post/patch/delete` with auto-refresh
 - `@/lib/api/auth` — typed `authApi.{register,login,mfaSetup,mfaSetupInit,mfaVerify,logout,verifyEmail,forgotPassword,resetPassword,listSessions,revokeSession,me}`
 - `@/lib/auth/use-auth` — `useLogin`, `useLogout`, `useAuthBootstrap`, `useCurrentUser`, `useCurrentOrganizations`
-- `@/lib/auth/use-can` — `useCan('permission:key')` (needs `/api/users/me/permissions` endpoint added — small TODO for phase 13 prep)
+- `@/lib/auth/use-can` — `useCan('permission:key')` works end-to-end (backend endpoint shipped in `4f84ba4`)
 - `middleware.ts` — extended with auth gate; non-public routes w/o `metaflow_refresh` cookie redirect to `/login?redirect=…`
 
-**Small backend gap** to close in phase 13 prep (or as part of Phase 14):
-- `GET /api/users/me/permissions?workspaceSlug=optional` returning `{ permissions: string[] }` — PermissionResolver.effectivePermissions already exists; just needs a controller endpoint wrapping it.
+**All backend prep for Phase 13 done.** No pending API work before frontend pages.
 
 **Routes available:**
 - `/api/auth/*` (12 endpoints) — register, login, mfa/{setup,verify}, refresh, logout, logout-all, email/{verify,resend-verification}, password/{forgot,reset,change}, sessions (GET/DELETE)
