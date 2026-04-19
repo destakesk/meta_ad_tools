@@ -1,0 +1,70 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# Prisma
+packages/database/generated/
+packages/database/prisma/migrations/*/migration_lock.toml
+
+# Env files (keep only .env.example)
+.env
+.env.*
+!.env.example
+
+# Secrets (defense in depth — never commit)
+*.pem
+*.key
+*.p12
+*.pfx
+**/credentials.json
+**/service-account*.json
+
+# Test / coverage
+coverage/
+.nyc_output/
+*.lcov
+playwright-report/
+test-results/
+.playwright/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+*.swp
+*.swo
+
+# Sentry
+.sentryclirc
+
+# Docker
+.docker/
+
+# Misc
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
