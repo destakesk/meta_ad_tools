@@ -1,7 +1,66 @@
-# metaflow — Module 01 progress report
+# metaflow — progress report
+
+## Module 02 — Auth & User Management
+
+**Status:** ⏸ PAUSED at Phase 7/18 — 2026-04-20
+**Resume doc:** [`docs/module-02-resume.md`](./docs/module-02-resume.md)
+**Branch:** `main`
+
+### Phases shipped (7/18)
+
+| Phase | Commit | Summary |
+|-------|--------|---------|
+| 0     | —         | baseline sanity check (lint/type-check/test green, services up) |
+| 1     | `5471f9a` | Prisma auth models (User/Org/Workspace/memberships/Permission/Session/Invitation/AuditLog) + migration `20260419204131_auth_user_session_org` |
+| 2     | `93ef4c7` | 41 permissions + 144 role-permission mappings, idempotent `pnpm db:seed` |
+| 3     | `a777fdc` | `@metaflow/shared-types`: auth, user, org, workspace, invitation, session, permission, audit Zod schemas |
+| 4     | `1e60705` | env + Joi config: auth, MFA, email, cookies, token TTLs; JWT_SECRET + MFA_TOKEN_SECRET isolation; COOKIE_SECURE forced true in prod |
+| 5     | `eaf57b2` | primitives: `PasswordService` (bcrypt + zxcvbn-ts), `TokenService` (HS256 JWT + SHA-256 opaque), `MfaService` (otplib + backup codes), `SessionService` (rotate w/ theft detection), `AuditService` (BullMQ producer), `AuthRateLimitService` (Redis counters). **30 unit tests green.** |
+| 6     | `fc8ef34` | BullMQ queues: audit-queue (AuditProcessor → `audit_logs` rows), email-queue (Resend + tmp/mail dev fallback), session-cleanup `@Cron('EVERY_HOUR')` |
+| 7     | `61f7c2e` | Redis-backed rate limiting (`@nest-lab/throttler-storage-redis`); ip extraction helper (CF-Connecting-IP → X-Forwarded-For → req.ip). Per-route custom trackers deferred to Phase 9. |
+
+### Test counts
+
+- `@metaflow/api` unit: 43 tests (Module 01: 13 + Module 02 primitives: 30)
+  - crypto: 9, global-exception: 3, health.live: 1 (from Module 01)
+  - password: 5, token: 5, mfa: 7, **plus Phase 8–15 tests coming**
+
+### Decisions locked
+
+- Hashing: bcrypt for password + backup codes; **SHA-256 for all random tokens** (refresh, email-verify, password-reset, invitation)
+- Email dev flow: Resend test key optional; `EmailProcessor` dumps to `tmp/mail/*.json` when `RESEND_API_KEY` is empty (Playwright e2e reads from here)
+- Refresh cookie path: `/api/auth` (spec)
+- Password strength: `@zxcvbn-ts/core` 3.x (modern maintained fork)
+- Access token storage (frontend): in-memory Zustand (no localStorage)
+- Permissions: 41 rows; ORG_OWNER inheritance = implicit WS_ADMIN (runtime resolver, not seeded)
+
+### Live smoke (Phase 7 exit)
+
+```
+api boots with 12 modules: Config, Logger, Schedule, Bull, Throttler(Redis),
+Prisma, Redis, Crypto, Health, Auth, Audit, Email, Session, Queue
+/health/ready → 200 {database:up, redis:up}
+rate limit state now persists across restarts (Redis-backed)
+```
+
+### Remaining phases (11/18)
+
+See [`docs/module-02-resume.md`](./docs/module-02-resume.md). Summary:
+- Phase 8: Guards (JwtAuth/WorkspaceAccess/Permission) + decorators + PermissionResolver
+- Phase 9: Auth controller (12 endpoints: register/login/MFA/refresh/logout/email/password)
+- Phase 10: Users/Orgs/Workspaces/Invitations/Sessions controllers
+- Phase 11: React Email templates (TR default)
+- Phase 12–14: Frontend (api client, middleware, auth pages, app shell)
+- Phase 15: ≥15 integration scenarios (testcontainers)
+- Phase 16: 4 Playwright e2e
+- Phase 17: OpenAPI/Swagger
+- Phase 18: CI updates + PROGRESS.md finalise + module-03 handoff
+
+---
+
+## Module 01 — Project Bootstrap
 
 **Status:** ✅ Complete — 2026-04-19
-**Branch:** `main`
 **Remote:** https://github.com/destakesk/meta_ad_tools.git
 
 ## What shipped
