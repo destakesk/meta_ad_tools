@@ -1,23 +1,39 @@
 import { NextResponse } from 'next/server';
-
 import type { NextRequest } from 'next/server';
 
+const PUBLIC_PATH_PREFIXES = [
+  '/login',
+  '/register',
+  '/verify-email',
+  '/forgot-password',
+  '/reset-password',
+  '/mfa/',
+  '/invite/accept',
+  '/api/',
+  '/_next/',
+];
+
+function isPublicPath(pathname: string): boolean {
+  if (pathname === '/' || pathname === '/login' || pathname === '/register') return true;
+  return PUBLIC_PATH_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
 /**
- * Edge middleware — emits a per-request Content Security Policy nonce and
- * forwards it both to the response (so scripts can opt in) and to the request
- * headers (so server components can read it via `headers()`).
- *
- * `'strict-dynamic'` lets any script loaded by a nonce'd script run without
- * needing its own hash, at the cost of requiring modern browsers (accepted).
+ * Edge middleware combining two responsibilities:
+ *   1. Emit a per-request CSP nonce (set on both request + response headers).
+ *   2. Protect non-public routes — if the refresh cookie is absent, redirect
+ *      to /login?redirect=<encoded original>. Authoritative verification
+ *      happens in server components; this is only a cheap first-line gate.
  */
 export function middleware(request: NextRequest): NextResponse {
   const nonce = generateNonce();
   const isDev = process.env.NODE_ENV === 'development';
+  const { pathname, search } = request.nextUrl;
 
   const cspDirectives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
-    "style-src 'self' 'unsafe-inline'", // tailwind ships inline styles; scoped to self
+    "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self' data:",
     "connect-src 'self' http://localhost:3001 https://*.sentry.io",
@@ -28,13 +44,21 @@ export function middleware(request: NextRequest): NextResponse {
     'upgrade-insecure-requests',
   ].join('; ');
 
+  // Auth gate — cheap cookie-presence check only.
+  if (!isPublicPath(pathname)) {
+    const hasRefresh = request.cookies.has('metaflow_refresh');
+    if (!hasRefresh) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname + search);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('content-security-policy', cspDirectives);
 
-  const response = NextResponse.next({
-    request: { headers: requestHeaders },
-  });
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set('content-security-policy', cspDirectives);
   return response;
 }
@@ -47,7 +71,6 @@ function generateNonce(): string {
 
 export const config = {
   matcher: [
-    // Apply on everything except static assets and favicon.
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };
