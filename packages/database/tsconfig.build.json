@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src/**/*", "generated/**/*.d.ts"],
+  "exclude": ["node_modules", "dist", "prisma", "**/*.spec.ts"]
+}

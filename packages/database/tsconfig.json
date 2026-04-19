@@ -1,11 +1,17 @@
 {
-  "extends": "@metaflow/tsconfig/library.json",
+  "extends": "@metaflow/tsconfig/base.json",
   "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "target": "ES2022",
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "./src",
+    "verbatimModuleSyntax": false,
+    "isolatedModules": false,
     "noEmit": true,
     "declaration": false,
-    "declarationMap": false
+    "declarationMap": false,
+    "incremental": false
   },
   "include": ["src/**/*", "prisma/**/*.ts", "generated/**/*"],
   "exclude": ["node_modules", "dist"]

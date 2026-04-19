@@ -6,12 +6,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build", "^db:generate"],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        "!.next/cache/**",
-        "build/**"
-      ],
+      "outputs": ["dist/**", "generated/**", ".next/**", "!.next/cache/**", "build/**"],
       "env": [
         "NODE_ENV",
         "APP_URL",

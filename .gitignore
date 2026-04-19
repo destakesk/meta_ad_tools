@@ -10,9 +10,8 @@ out/
 .turbo/
 *.tsbuildinfo
 
-# Prisma
+# Prisma — generated client is not committed; migration SQL IS committed
 packages/database/generated/
-packages/database/prisma/migrations/*/migration_lock.toml
 
 # Env files (keep only .env.example)
 .env

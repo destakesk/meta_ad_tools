@@ -1,12 +1,8 @@
-import { PrismaClient } from '../generated/client/index.js';
+import { PrismaClient } from '../generated/client';
 
 /**
- * Guarded Prisma singleton.
- *
- * In production a single instance is sufficient. During Next.js / tsx hot
- * reload, a naive `new PrismaClient()` leaks connections because each module
- * reload spawns a new client. Parking the instance on `globalThis` in non-prod
- * environments keeps the pool stable.
+ * Guarded Prisma singleton — avoids multi-client connection leaks under
+ * Next.js / tsx hot reload by parking the instance on globalThis in non-prod.
  */
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
