@@ -1,8 +1,10 @@
 # Module 02 — Resume Guide
 
-**Current state:** Phase 10 of 18 complete (2026-04-20). **Backend API surface is complete — 6 controllers mounted, end-to-end `register→verify→login` flow verified.** Branch `main`. All commits pushed? Check `git log origin/main..HEAD` — push before starting a new session.
+**Current state:** Phase 12 of 18 complete (2026-04-20). **Backend complete + React Email templates live + OpenAPI/Swagger mounted.** Branch `main`. All commits pushed? Check `git log origin/main..HEAD` — push before starting a new session.
 
-**Resume from:** Phase 11 (React Email templates). Everything backend is wired.
+**Resume from:** Phase 12 (Frontend auth client + middleware + hooks + Zustand store). All backend work done — remaining is: frontend (3 phases), integration tests, e2e, docs.
+
+**Inspect the backend now:** `http://localhost:3001/api/docs` for Swagger UI, `http://localhost:3001/api/docs-json` for the OpenAPI JSON (27 paths).
 
 **Routes available:**
 - `/api/auth/*` (12 endpoints) — register, login, mfa/{setup,verify}, refresh, logout, logout-all, email/{verify,resend-verification}, password/{forgot,reset,change}, sessions (GET/DELETE)

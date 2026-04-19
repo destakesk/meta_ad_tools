@@ -2,11 +2,11 @@
 
 ## Module 02 — Auth & User Management
 
-**Status:** ⏸ PAUSED at Phase 10/18 — 2026-04-20 (backend API complete)
+**Status:** ⏸ PAUSED at Phase 12/18 — 2026-04-20 (backend + emails + swagger)
 **Resume doc:** [`docs/module-02-resume.md`](./docs/module-02-resume.md)
 **Branch:** `main`
 
-### Phases shipped (10/18)
+### Phases shipped (12/18)
 
 | Phase | Commit | Summary |
 |-------|--------|---------|
@@ -20,7 +20,9 @@
 | 7     | `61f7c2e` | Redis-backed rate limiting (`@nest-lab/throttler-storage-redis`); ip extraction helper |
 | 8     | (hash TBD) | Guards (JwtAuth/WorkspaceAccess/Permission/EmailVerified/CustomHeader), decorators (@Public/@CurrentUser/@CurrentSession/@CurrentWorkspace/@RequirePermission), PermissionResolver with ORG_OWNER→WS_ADMIN inheritance + 60s Redis cache + 6 unit tests |
 | 9     | `ca01b07` | AuthController: 12 endpoints (register/login/mfa/refresh/logout/email/password/sessions) + AuthService orchestration + DTOs + cookie helpers + ApiResponseInterceptor + global prefix `api` + cookie-parser; shared-types now dual ESM+CJS so nest CJS runtime can require() it. **Live smoke verified end-to-end.** |
-| 10    | (hash TBD) | UsersController (profile + mfa regenerate/disable), OrganizationsService+Controller (current, invite, create workspace with RESERVED_SLUGS check), WorkspacesController (slug→workspace via WorkspaceAccessGuard w/ ORG_OWNER fallback), InvitationsController (public preview + accept w/ new-user register path). 6 controllers mounted. |
+| 10    | (pushed `5c2fcf8`) | UsersController (profile + mfa regenerate/disable), OrganizationsService+Controller (current, invite, create workspace with RESERVED_SLUGS check), WorkspacesController (slug→workspace via WorkspaceAccessGuard w/ ORG_OWNER fallback), InvitationsController (public preview + accept w/ new-user register path). 6 controllers mounted. |
+| 11    | (hash in log)   | React Email templates (verify/password-reset/invitation) with shared Layout + CtaButton, TR copy, 24h/1h/7d expiry notices. EmailProcessor renders + sends both html + plaintext via Resend or dumps to tmp/mail/. tsconfig `jsx: react`. |
+| 17    | `ef21923`       | OpenAPI/Swagger at `/api/docs` (UI) + `/api/docs-json`. Bearer + refreshCookie security schemes. `@nestjs/swagger` CLI plugin in nest-cli.json with classValidatorShim + introspectComments. 27 paths auto-registered. |
 
 ### Test counts
 
@@ -48,10 +50,9 @@ POST /api/auth/login     → 200 {step:mfa_setup_required, mfaSetupToken}
   (full register → verify → login flow live verified)
 ```
 
-### Remaining phases (8/18)
+### Remaining phases (6/18)
 
 See [`docs/module-02-resume.md`](./docs/module-02-resume.md). Summary:
-- Phase 11: React Email templates (TR default) — replace string stubs in EmailProcessor
 - Phase 12–14: Frontend (api client, middleware, auth pages, app shell)
 - Phase 15: ≥15 integration scenarios (testcontainers)
 - Phase 16: 4 Playwright e2e
