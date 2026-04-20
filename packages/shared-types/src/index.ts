@@ -11,3 +11,5 @@ export * from './audit';
 export * from './meta';
 export * from './campaign';
 export * from './adset';
+export * from './ad';
+export * from './creative';
