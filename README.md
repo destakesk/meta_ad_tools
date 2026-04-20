@@ -30,9 +30,10 @@ cp .env.example .env
 # 5. Bring up backing services
 docker compose -f infra/docker-compose.yml up -d
 
-# 6. Generate Prisma client + run migrations
+# 6. Generate Prisma client + run migrations + seed permissions
 pnpm db:generate
 pnpm db:migrate
+pnpm --filter @metaflow/database db:seed
 
 # 7. Start dev servers
 pnpm dev

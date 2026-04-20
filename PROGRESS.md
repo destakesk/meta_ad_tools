@@ -2,11 +2,11 @@
 
 ## Module 02 — Auth & User Management
 
-**Status:** ⏸ PAUSED at Phase 13/18 — 2026-04-20 (backend + emails + swagger + frontend plumbing)
-**Resume doc:** [`docs/module-02-resume.md`](./docs/module-02-resume.md)
+**Status:** ✅ Complete — 2026-04-20
 **Branch:** `main`
+**Module 03 handoff:** [`docs/module-03-handoff.md`](./docs/module-03-handoff.md)
 
-### Phases shipped (13/18)
+### Phases shipped (18/18)
 
 | Phase | Commit | Summary |
 |-------|--------|---------|
@@ -24,12 +24,19 @@
 | 11    | (hash in log)   | React Email templates (verify/password-reset/invitation) with shared Layout + CtaButton, TR copy, 24h/1h/7d expiry notices. EmailProcessor renders + sends both html + plaintext via Resend or dumps to tmp/mail/. tsconfig `jsx: react`. |
 | 17    | `ef21923`       | OpenAPI/Swagger at `/api/docs` (UI) + `/api/docs-json`. Bearer + refreshCookie security schemes. `@nestjs/swagger` CLI plugin in nest-cli.json with classValidatorShim + introspectComments. 27 paths auto-registered. |
 | 12    | (hash in log)   | Frontend plumbing: `useAuthStore` Zustand (not persisted), `apiFetch` with X-Requested-With header + Bearer + single-flight silent refresh on 401, typed `authApi` for every /auth endpoint, `useLogin/useLogout/useAuthBootstrap` + `useCan` hook, middleware extended with cookie-presence auth gate (redirects to /login?redirect=...). web type-check + build green. |
+| 13    | `752ff15` | Auth pages under `(auth)` group: login, register, verify-email, forgot-password, reset-password, mfa/setup, mfa/verify; plus `/invite/accept`. RHF + zod resolvers bound to `@metaflow/shared-types`. Backup-code one-shot reveal + .txt download. shadcn-style primitives (button, input, label, form, alert, dialog, dropdown-menu, separator, skeleton, sonner) written inline. Web build 161 kB first-load on /login. |
+| 14    | `3aa9de5`, `9a1cd2a` | App shell + workspace switcher + `(app)/` route group. `/settings/{profile,security,sessions,organization,members}` and `/w/[slug]/{,settings}`. API gained `GET /organizations/:orgId/members`, `PATCH /organizations/:orgId`, `PATCH /workspaces/:slug`. `useCan()` UI gating against `/api/users/me/permissions`; status page moved to `/status` (public). |
+| 15    | `bb595a0` | Integration suite via testcontainers (one pg + redis per run, `withReuse()`); `vitest.integration.config.ts` + `pnpm test:integration`. **22 tests across 10 files** covering register/email-job, full-flow (register→verify→mfa→me), 6-failure lockout, refresh rotation + theft revoke-all, logout JTI blacklist, ORG_MEMBER denial + ORG_OWNER WS_ADMIN inheritance + non-member 403, invitation preview + accept-new + accept-existing + expired, password reset (revokes refresh) + change (keeps current) + enumeration-safety, session list + cannot-revoke-current, forgot/login rate-limit. |
+| 16    | `ec7beab` | Playwright e2e: 4 specs (signup-mfa-login, password-reset, invitation-flow, session-revoke). Both web (3000) + api (3001) booted by `webServer` in `playwright.config.ts`; mailbox helper reads `tests/e2e/.mailbox/` JSON dumps via `MAIL_DUMP_DIR`. `pnpm --filter @metaflow/web test:e2e`. |
+| 18    | (this commit) | CI updated: `integration-tests` job (testcontainers on the ubuntu runner) + `e2e-tests` job (pg+redis services + playwright install + chromium project). PROGRESS.md flipped to ✅ Complete. `docs/module-03-handoff.md` written for the Meta OAuth + BISU work. |
 
 ### Test counts
 
 - `@metaflow/api` unit: **36 tests** green (Module 01: 13 + Module 02 primitives+resolver: 23)
   - password: 5, token: 5, mfa: 7, permission-resolver: 6
-  - plus Phase 10-15 tests to come
+- `@metaflow/api` integration: **22 tests** green via `pnpm --filter @metaflow/api test:integration` (testcontainers spins pg:16 + redis:7, ≈30s warm)
+- `@metaflow/web` unit: **2 tests** green (badge component)
+- `@metaflow/web` e2e: **4 scenarios** wired (signup-mfa-login, password-reset, invitation-flow, session-revoke). Run with `pnpm --filter @metaflow/web test:e2e`.
 
 ### Decisions locked
 
@@ -51,14 +58,10 @@ POST /api/auth/login     → 200 {step:mfa_setup_required, mfaSetupToken}
   (full register → verify → login flow live verified)
 ```
 
-### Remaining phases (5/18)
+### Remaining phases
 
-See [`docs/module-02-resume.md`](./docs/module-02-resume.md). Summary:
-- Phase 12–14: Frontend (api client, middleware, auth pages, app shell)
-- Phase 15: ≥15 integration scenarios (testcontainers)
-- Phase 16: 4 Playwright e2e
-- Phase 17: OpenAPI/Swagger
-- Phase 18: CI updates + PROGRESS.md finalise + module-03 handoff
+None — Module 02 is complete. Hand-off to Module 03 (Meta OAuth + BISU) is in
+[`docs/module-03-handoff.md`](./docs/module-03-handoff.md).
 
 ---
 

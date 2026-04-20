@@ -104,3 +104,130 @@ jobs:
           path: apps/*/coverage
           if-no-files-found: ignore
           retention-days: 7
+
+  integration-tests:
+    name: integration-tests (api)
+    runs-on: ubuntu-24.04
+    needs: lint-type-test
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: |
+          pnpm --filter @metaflow/shared-types build
+          pnpm db:generate
+          pnpm --filter @metaflow/database build
+
+      - name: Run integration suite (testcontainers)
+        run: pnpm --filter @metaflow/api test:integration
+        env:
+          # testcontainers spins ephemeral pg + redis itself; nothing else
+          # the suite needs except a working Docker daemon, which the ubuntu
+          # runner already exposes.
+          NODE_ENV: test
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
+
+  e2e-tests:
+    name: e2e-tests (web)
+    runs-on: ubuntu-24.04
+    needs: lint-type-test
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: postgresql://metaflow:metaflow_test@localhost:5432/metaflow_test?schema=public
+      REDIS_URL: redis://localhost:6379
+      APP_URL: http://localhost:3000
+      API_URL: http://localhost:3001
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+      ENCRYPTION_KEY: dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleXRlc3RrZXk=
+      JWT_SECRET: dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleXRlc3RrZXk=
+      MFA_TOKEN_SECRET: dGVzdGtleXRlc3RrZXl0ZXN0a2V5dGVzdGtleXRlc3RrZXl0
+      EMAIL_VERIFY_URL_BASE: http://localhost:3000/verify-email
+      PASSWORD_RESET_URL_BASE: http://localhost:3000/reset-password
+      INVITATION_URL_BASE: http://localhost:3000/invite/accept
+      RESEND_API_KEY: ''
+      MAIL_DUMP_DIR: ${{ github.workspace }}/apps/web/tests/e2e/.mailbox
+      NODE_ENV: test
+      CI: 'true'
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: metaflow
+          POSTGRES_PASSWORD: metaflow_test
+          POSTGRES_DB: metaflow_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U metaflow"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Apply migrations + seed
+        run: |
+          pnpm --filter @metaflow/database exec prisma migrate deploy
+          pnpm --filter @metaflow/database db:seed
+
+      - name: Build shared packages
+        run: |
+          pnpm --filter @metaflow/shared-types build
+          pnpm --filter @metaflow/database build
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @metaflow/web exec playwright install --with-deps chromium
+
+      - name: Run e2e (chromium)
+        run: pnpm --filter @metaflow/web test:e2e -- --project=chromium
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7

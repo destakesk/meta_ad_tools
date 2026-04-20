@@ -1,8 +1,16 @@
-# Module 02 — Resume Guide
+# Module 02 — Resume Guide (archived)
 
-**Current state:** Phase 13 of 18 complete (2026-04-20). **Backend + emails + swagger + frontend plumbing done.** Branch `main`. All commits pushed? Check `git log origin/main..HEAD` — push before starting a new session.
+**Current state:** ✅ Module 02 complete (2026-04-20). All 18 phases shipped.
+For the next module, see [`module-03-handoff.md`](./module-03-handoff.md).
 
-**Resume from:** Phase 13 (Frontend auth PAGES — login/register/MFA setup+verify/password-forgot+reset/invite-accept). Plumbing (api client, middleware gate, hooks, store) is already in place.
+This file is kept as a historical record of how the module was structured.
+Entries below describe the phase plan as it stood mid-development.
+
+---
+
+**Original status when paused:** Phase 13 of 18 complete (2026-04-20). **Backend + emails + swagger + frontend plumbing done.** Branch `main`.
+
+**Original resume from:** Phase 13 (Frontend auth PAGES — login/register/MFA setup+verify/password-forgot+reset/invite-accept). Plumbing (api client, middleware gate, hooks, store) was already in place.
 
 **Inspect the backend now:** `http://localhost:3001/api/docs` for Swagger UI, `http://localhost:3001/api/docs-json` for OpenAPI JSON (27 paths).
 
