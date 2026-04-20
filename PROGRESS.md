@@ -1,5 +1,40 @@
 # metaflow — progress report
 
+## Module 07 — Ads + Creatives
+
+**Status:** ✅ Complete — 2026-04-20
+**Branch:** `main`
+**Module 08 handoff:** [`docs/module-08-handoff.md`](./docs/module-08-handoff.md)
+
+### Phases shipped (8/8)
+
+| Phase | Summary |
+|-------|---------|
+| 0 | Sanity: 42 integration tests green on main; mock campaign+adset stores already had reset hook. |
+| 1 | Prisma `Ad` + `Creative` models + `AdStatus` + `CreativeKind` enums. Migration `20260420121724_ads_creatives_module_07`. `Ad` has FKs to Campaign, AdSet, and (nullable, SetNull) Creative; unique `(adsetId, metaAdId)`. `Creative` has FK to MetaAdAccount; unique `(adAccountId, metaCreativeId)`; objectStorySpec opaque Json for full Meta spec re-hydration. |
+| 2 | Permission catalogue grows `adset:delete`, `ad:delete`, `creative:delete` (granted to ADMIN tier; WS_MANAGER still cannot destroy). Seed now emits 44 permissions / 153 role-permission mappings. AdSet delete controller re-gated from `campaign:delete` to `adset:delete`. |
+| 3 | shared-types `ad.ts` + `creative.ts` schemas, enums (adStatusSchema, creativeKindSchema), audit actions `ad.synced / .created / .updated / .deleted` + `creative.synced / .created / .deleted`, `PERMISSION_KEY_LIST` extended with the three new keys. |
+| 4 | `MetaApiClient` extended with `fetchAds / createAd / updateAd / deleteAd` + `fetchCreatives / createCreative / deleteCreative`. Mock uses two more stateful `Map`s (ads keyed by `metaAdSetId`, creatives keyed by `metaAdAccountId`); `__resetMockCampaignStore` now clears all four. Real binding calls Graph `/{adSetId}/ads` for read, `POST /act_<accountId>/ads` for create (with a GET on the adset to discover account_id), `/act_<accountId>/adcreatives` for creative CRUD. |
+| 5 | `AdsService` + `CreativesService` + three controllers. `AdSetAdsController` at `/workspaces/:slug/adsets/:adsetId/ads` for list+sync+create; workspace-scoped `AdsController` at `/workspaces/:slug/ads/:id` for detail+update+delete. `AdAccountCreativesController` for per-account list+sync; workspace-scoped `CreativesController` at `/workspaces/:slug/creatives` for library listing, create, delete. `ad:write` / `ad:delete` / `creative:write` / `creative:delete` gate the routes. Creative delete refuses if any non-DELETED/ARCHIVED ad still references it (BadRequest `creative_in_use`). |
+| 6 | Frontend: `/w/[slug]/adsets/[id]` detail page with an `AdsPanel` (list + sync + RHF create dialog with creative picker + per-row delete). `/w/[slug]/creatives` library page (grid view with thumbs, kind badges, per-card delete, create dialog that pulls ad accounts from the first ACTIVE MetaConnection). Campaign detail's `AdSetsPanel` grows a "view ads" arrow link and now uses `adset:delete` permission. Workspace landing page gets a quick-access row for Campaigns / Creatives / Insights / Members. |
+| 7 | Integration suite: `apps/api/test/integration/ads.spec.ts` — creative sync, creative create, ad sync, full ad CRUD round-trip, creative-in-use delete block, cross-workspace isolation. **Total integration suite: 48 tests across 15 files.** |
+| 8 | PROGRESS.md ✅. `docs/module-08-handoff.md` written. |
+
+### Test counts
+
+- `@metaflow/api` integration: **48 tests** across 15 files (42 modules 02-06 + 6 module 07)
+
+### Decisions locked
+
+1. **Two-controller pattern extends all the way down.** Ads: parent-scoped under `/adsets/:adsetId/ads` for list/sync/create; workspace-scoped under `/ads/:id` for detail/update/delete. Creatives: per-ad-account `/adaccounts/:id/creatives` for list/sync; workspace-level `/creatives` library for everything else. Same shape as Module 06 so readers can pattern-match.
+2. **Creatives live at the ad-account level, not the adset level.** Matches Graph's ownership. A creative can be reused by many ads. FK from Ad → Creative is `SetNull` so deleting a creative doesn't cascade into ad rows (plus the guard below blocks the common case anyway).
+3. **Creative delete refuses if an active ad references it.** Any ad whose status is not DELETED/ARCHIVED and points at the creative blocks the delete with `creative_in_use`. Keeps the UI's orphaned-reference problem small.
+4. **`ad:delete` + `adset:delete` + `creative:delete` are granted to ADMIN tier only.** WS_MANAGER can create / edit but not destroy, matching the campaign split.
+5. **Mock ad store seeded deterministically.** Two fixture ads per adset (one ACTIVE, one PAUSED) with per-adset creative refs so the sync round-trip test can assert count without fragile state setup.
+6. **objectStorySpec is opaque.** We store whatever Meta returns (link_data / video_data / photo_data / …). The preview UI only renders the thumb; re-hydration into Meta is byte-for-byte.
+
+---
+
 ## Module 06 — AdSets
 
 **Status:** ✅ Complete — 2026-04-20
