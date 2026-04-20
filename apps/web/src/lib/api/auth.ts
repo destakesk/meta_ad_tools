@@ -1,16 +1,20 @@
 import { api } from './client';
 
 import type {
+  ChangePasswordRequest,
   ForgotPasswordRequest,
   LoginRequest,
   LoginResponse,
   MeResponse,
+  MfaDisableRequest,
   MfaSetupInitResponse,
   MfaSetupRequest,
   MfaVerifyRequest,
+  RegenerateBackupCodesRequest,
   RegisterRequest,
   ResetPasswordRequest,
   SessionListResponse,
+  UpdateProfileRequest,
 } from '@metaflow/shared-types';
 
 export const authApi = {
@@ -44,8 +48,21 @@ export const authApi = {
   resetPassword: (body: ResetPasswordRequest) =>
     api.post<{ ok: true }>('/api/auth/password/reset', body),
 
+  changePassword: (body: ChangePasswordRequest) =>
+    api.post<{ ok: true }>('/api/auth/password/change', body),
+
   listSessions: () => api.get<SessionListResponse>('/api/auth/sessions'),
-  revokeSession: (id: string) => api.delete<{ ok: boolean }>(`/api/auth/sessions/${id}`),
+  revokeSession: (id: string) =>
+    api.delete<{ ok: boolean; error?: { code: string; message: string } }>(
+      `/api/auth/sessions/${id}`,
+    ),
 
   me: () => api.get<MeResponse>('/api/users/me'),
+  updateMe: (body: UpdateProfileRequest) =>
+    api.patch<{ id: string; fullName: string; avatarUrl: string | null }>('/api/users/me', body),
+
+  regenerateBackupCodes: (body: RegenerateBackupCodesRequest) =>
+    api.post<{ backupCodes: string[] }>('/api/users/me/mfa/regenerate-backup-codes', body),
+  disableMfa: (body: MfaDisableRequest) =>
+    api.post<{ ok: true }>('/api/users/me/mfa/disable', body),
 };

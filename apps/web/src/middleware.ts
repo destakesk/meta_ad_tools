@@ -10,12 +10,13 @@ const PUBLIC_PATH_PREFIXES = [
   '/reset-password',
   '/mfa/',
   '/invite/accept',
+  '/status',
   '/api/',
   '/_next/',
 ];
 
 function isPublicPath(pathname: string): boolean {
-  if (pathname === '/' || pathname === '/login' || pathname === '/register') return true;
+  if (pathname === '/login' || pathname === '/register' || pathname === '/status') return true;
   return PUBLIC_PATH_PREFIXES.some((p) => pathname.startsWith(p));
 }
 

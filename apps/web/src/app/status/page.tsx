@@ -10,8 +10,8 @@ import { fetchHealth } from '@/lib/api-client';
 export const dynamic = 'force-dynamic';
 
 /**
- * System status page — module 01 placeholder. In module 02 this route will be
- * replaced by the auth landing and the status view will move to /status.
+ * System status page — public, no auth required. Used by ops to verify
+ * the API + dependencies are reachable from the browser side.
  */
 export default async function StatusPage(): Promise<ReactElement> {
   let initial: HealthResponse;
@@ -31,9 +31,7 @@ export default async function StatusPage(): Promise<ReactElement> {
     <main className="mx-auto max-w-2xl px-6 py-16">
       <div className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight">metaflow</h1>
-        <p className="mt-2 text-[hsl(var(--muted-foreground))]">
-          module 01 bootstrap — system status
-        </p>
+        <p className="mt-2 text-[hsl(var(--muted-foreground))]">system status</p>
       </div>
 
       <Card>
