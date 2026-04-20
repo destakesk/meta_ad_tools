@@ -4,10 +4,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
+import type { LoginRequest, LoginResponse } from '@metaflow/shared-types';
+
 import { authApi } from '@/lib/api/auth';
 import { useAuthStore } from '@/stores/use-auth-store';
-
-import type { LoginRequest, LoginResponse } from '@metaflow/shared-types';
 
 /**
  * Mutation-based login that stashes the access token on success. MFA branches
@@ -53,7 +53,7 @@ export function useAuthBootstrap(): { ready: boolean } {
 
   useEffect(() => {
     if (accessToken !== null) return;
-    let cancelled = false;
+    const abort = new AbortController();
     void (async () => {
       try {
         const res = await fetch(
@@ -62,6 +62,7 @@ export function useAuthBootstrap(): { ready: boolean } {
             method: 'POST',
             credentials: 'include',
             headers: { 'X-Requested-With': 'metaflow-web' },
+            signal: abort.signal,
           },
         );
         if (!res.ok) return;
@@ -69,16 +70,16 @@ export function useAuthBootstrap(): { ready: boolean } {
           success: true;
           data: { accessToken: string | null };
         };
-        if (cancelled || !env.data.accessToken) return;
+        if (env.data.accessToken === null) return;
         setAccessToken(env.data.accessToken);
         const me = await authApi.me();
-        if (!cancelled) setMe(me);
+        if (!abort.signal.aborted) setMe(me);
       } catch {
-        // swallow — user is signed-out
+        // swallow — user is signed-out or aborted
       }
     })();
     return () => {
-      cancelled = true;
+      abort.abort();
     };
   }, [accessToken, setAccessToken, setMe]);
 

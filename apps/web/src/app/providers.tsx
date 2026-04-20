@@ -5,6 +5,8 @@ import { useState } from 'react';
 
 import type { ReactNode } from 'react';
 
+import { Toaster } from '@/components/ui/sonner';
+
 export function Providers({ children }: { children: ReactNode }): React.ReactElement {
   const [client] = useState(
     () =>
@@ -19,5 +21,10 @@ export function Providers({ children }: { children: ReactNode }): React.ReactEle
       }),
   );
 
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      {children}
+      <Toaster richColors position="top-right" />
+    </QueryClientProvider>
+  );
 }

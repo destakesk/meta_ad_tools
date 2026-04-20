@@ -67,3 +67,6 @@ desktop.ini
 .parcel-cache/
 .eslintcache
 .stylelintcache
+
+# Dev-only fixtures (e.g. EmailProcessor dumps when RESEND_API_KEY is empty)
+tmp/

@@ -3,9 +3,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 
-import { api } from '@/lib/api/client';
-
 import type { PermissionKey } from '@metaflow/shared-types';
+
+import { api } from '@/lib/api/client';
 
 interface EffectivePermissionsResponse {
   permissions: string[];
@@ -21,7 +21,7 @@ interface EffectivePermissionsResponse {
  */
 export function useCan(permission: PermissionKey): boolean {
   const params = useParams<{ slug?: string }>();
-  const slug = params?.slug;
+  const slug = params.slug;
 
   // Lazy: only fetch when a consumer calls useCan somewhere in the tree.
   const { data } = useQuery<EffectivePermissionsResponse>({
