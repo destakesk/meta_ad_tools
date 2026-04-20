@@ -69,3 +69,34 @@ export type UpdateAdSetRequest = z.infer<typeof updateAdSetRequestSchema>;
 
 export const adSetSyncResponseSchema = z.object({ syncedCount: z.number().int().min(0) });
 export type AdSetSyncResponse = z.infer<typeof adSetSyncResponseSchema>;
+
+/**
+ * Module 08 — per-adset insight row. Same metric shape as the campaign
+ * level; parent key is `adsetId` instead of `campaignId`.
+ */
+export const adSetInsightRowSchema = z.object({
+  adsetId: z.string(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  impressions: stringBigint,
+  clicks: stringBigint,
+  spendCents: stringBigint,
+  conversions: stringBigint,
+  reach: stringBigint,
+  frequency: z.number(),
+  cpmCents: stringBigint.nullable(),
+  ctr: z.number().nullable(),
+});
+export type AdSetInsightRow = z.infer<typeof adSetInsightRowSchema>;
+
+export const adSetInsightListResponseSchema = z.object({
+  rows: z.array(adSetInsightRowSchema),
+  totals: z.object({
+    impressions: stringBigint,
+    clicks: stringBigint,
+    spendCents: stringBigint,
+    conversions: stringBigint,
+  }),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+export type AdSetInsightListResponse = z.infer<typeof adSetInsightListResponseSchema>;
