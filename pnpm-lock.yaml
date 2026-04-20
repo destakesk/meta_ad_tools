@@ -400,6 +400,9 @@ importers:
       '@prisma/client':
         specifier: ^6.2.1
         version: 6.19.3(prisma@6.19.3(magicast@0.3.5)(typescript@5.9.3))(typescript@5.9.3)
+      prisma:
+        specifier: ^6.2.1
+        version: 6.19.3(magicast@0.3.5)(typescript@5.9.3)
     devDependencies:
       '@metaflow/eslint-config':
         specifier: workspace:*
@@ -410,9 +413,6 @@ importers:
       eslint:
         specifier: ^9.17.0
         version: 9.39.4(jiti@2.6.1)
-      prisma:
-        specifier: ^6.2.1
-        version: 6.19.3(magicast@0.3.5)(typescript@5.9.3)
       tsx:
         specifier: ^4.19.2
         version: 4.21.0

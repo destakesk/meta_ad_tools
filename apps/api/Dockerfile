@@ -62,4 +62,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD curl -fsS http://localhost:3001/health/live || exit 1
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "dist/main.js"]
+# Apply pending migrations on every boot (idempotent) then start the API.
+# The prisma CLI + migrations are bundled because @metaflow/database is a
+# runtime workspace dep of @metaflow/api.
+CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy --schema=node_modules/@metaflow/database/prisma/schema.prisma && node dist/main.js"]
