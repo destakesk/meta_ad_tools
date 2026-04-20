@@ -33,6 +33,7 @@ coverage/
 playwright-report/
 test-results/
 .playwright/
+apps/web/tests/e2e/.mailbox/
 
 # Logs
 *.log
