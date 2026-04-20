@@ -1,5 +1,43 @@
 # metaflow — progress report
 
+## Module 04 — Campaigns + Insights
+
+**Status:** ✅ Complete — 2026-04-20
+**Branch:** `main`
+**Module 05 handoff:** [`docs/module-05-handoff.md`](./docs/module-05-handoff.md)
+
+### Phases shipped (10/10)
+
+| Phase | Summary |
+|-------|---------|
+| 0 | Sanity: lint/type-check/test green; admin user from module 02 testing still present; mock Meta connection works. |
+| 1 | Prisma `Campaign` + `MetaInsightSnapshot` models + `CampaignStatus` enum. Budgets + spend in integer minor units (BigInt). `(adAccountId, metaCampaignId)` unique; `(campaignId, date)` unique on snapshots for idempotent re-syncs. Migration `20260420090509_campaigns_insights_module_04` applied. |
+| 2 | `@metaflow/shared-types`: Campaign / InsightRow / CampaignListResponse / InsightListResponse / InsightSyncRequest / CampaignSyncResponse. BigInt travels as regex-validated string. Two new audit actions: `campaign.synced`, `insights.fetched`. |
+| 3 | `MetaApiClient` extended with `fetchCampaigns` + `fetchInsights` on both implementations. Mock returns 2 campaigns per ad account + deterministic per-day insight rows (seed from campaign id hash). Real binding calls `/{ad_account}/campaigns` + `/{ad_account}/insights?level=campaign`, converts Graph's major-units spend to minor units. |
+| 4 | `CampaignsService` — `syncFromMeta` (upserts all ad accounts' campaigns, marks stale rows DELETED), `listForWorkspace`, `getById`. Token decryption goes through `CryptoService` with workspace-scoped AAD; audit on every sync. |
+| 5 | `InsightsService` — `syncForWorkspace(from, to)` pulls daily rows for ACTIVE + PAUSED campaigns and upserts `meta_insight_snapshots`. `listForWorkspace` aggregates totals over the range. Range validation (max 400 days, inverted rejected, ISO 8601 enforced). |
+| 6 | `CampaignsController` (GET /campaigns, POST /campaigns/sync, GET /campaigns/:id, GET /campaigns/:id/insights) + `InsightsController` (GET /insights, POST /insights/sync). All workspace-scoped, gated by `campaign:read` and `insights:read` from the Module 02 seed. |
+| 7 | Web: `/w/[slug]/campaigns` list with manual sync + empty state linking to Meta connection. `/w/[slug]/campaigns/[id]` detail with last-14-days performance preview. Topbar gains Kampanyalar + İçgörüler links when inside a workspace. |
+| 8 | Web: `/w/[slug]/insights` with date-range picker + Meta sync button + totals + per-row table joined with campaign names/currencies. `lib/format.ts` shared BigInt-safe integer + currency + percent formatters. |
+| 9 | Integration tests (`apps/api/test/integration/campaigns.spec.ts`, 5 tests): sync inserts 2×2 campaigns, insights sync + list round-trip matches row sums, missing-connection rejection, range validation, cross-workspace isolation. **Total integration suite: 33 tests across 12 files.** |
+| 10 | PROGRESS.md flipped to ✅. `docs/module-05-handoff.md` written. CI integration job automatically picks up the new spec. |
+
+### Test counts
+
+- `@metaflow/api` integration: **33 tests** across 12 files (22 module 02 + 6 module 03 + 5 module 04)
+- Unit + web counts unchanged from module 02
+
+### Decisions locked
+
+1. **Budgets as BigInt minor units.** Every monetary column (`dailyBudgetCents`, `lifetimeBudgetCents`, `spendCents`, `cpmCents`) is `BigInt`. API serialises as BigInt-as-string so JSON round-trips don't lose precision on very-large-spend accounts.
+2. **Upsert-on-sync, never delete.** A campaign that disappears from Meta flips to `DELETED` but stays in the DB so its historical insights remain attached. Same pattern for `meta_insight_snapshots` — re-syncing a range refreshes numbers in place.
+3. **`insights:read` gates both campaigns.detail.insights AND the top-level /insights.** That way a workspace viewer with campaign:read but without insights:read gets campaign list + detail metadata but not performance numbers.
+4. **Range cap 400 days.** Meta's own insight windows top out around 37 months; we cap at 400 days to make any accidental front-end submission (`from=2000-01-01`) return a clean error instead of a multi-minute Graph call.
+5. **Per-campaign insights endpoint re-uses workspace-wide fetch + client-side filter.** Simpler than a separate query path; the workspace-wide fetch is already per-campaign granular. When data volumes grow we'll swap to a campaign-scoped query — noted as a perf TODO in `CampaignsController.campaignInsights`.
+6. **Ad-account sync is a Module 03 concern.** Module 04's `campaigns/sync` assumes `ad_accounts` is already populated. The frontend empty state points users at `/w/<slug>/settings/meta` where the ad-account sync button lives.
+
+---
+
 ## Module 03 — Meta Ads Connection
 
 **Status:** ✅ Complete — 2026-04-20
