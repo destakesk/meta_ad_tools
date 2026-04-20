@@ -2,9 +2,11 @@ import { api } from './client';
 
 import type {
   AdSet,
+  AdSetInsightListResponse,
   AdSetListResponse,
   AdSetSyncResponse,
   CreateAdSetRequest,
+  InsightSyncRequest,
   UpdateAdSetRequest,
 } from '@metaflow/shared-types';
 
@@ -33,4 +35,12 @@ export const adSetsApi = {
 
   delete: (slug: string, id: string) =>
     api.delete<{ ok: true }>(`/api/workspaces/${slug}/adsets/${id}`),
+
+  insights: (slug: string, id: string, from: string, to: string) =>
+    api.get<AdSetInsightListResponse>(
+      `/api/workspaces/${slug}/adsets/${id}/insights?from=${from}&to=${to}`,
+    ),
+
+  syncInsights: (slug: string, id: string, body: InsightSyncRequest) =>
+    api.post<{ syncedCount: number }>(`/api/workspaces/${slug}/adsets/${id}/insights/sync`, body),
 };

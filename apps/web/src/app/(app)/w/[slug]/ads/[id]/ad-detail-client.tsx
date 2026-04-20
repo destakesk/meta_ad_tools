@@ -5,22 +5,21 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
-import { AdsPanel } from '@/components/adsets/ads-panel';
 import { InsightsCard } from '@/components/insights/insights-card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { adSetsApi } from '@/lib/api/adsets';
+import { adsApi } from '@/lib/api/ads';
 
-export function AdSetDetailClient(): React.ReactElement {
+export function AdDetailClient(): React.ReactElement {
   const params = useParams<{ slug: string; id: string }>();
   const { slug, id } = params;
 
   const detail = useQuery({
-    queryKey: ['adset', slug, id],
-    queryFn: () => adSetsApi.detail(slug, id),
+    queryKey: ['ad', slug, id],
+    queryFn: () => adsApi.detail(slug, id),
     staleTime: 30_000,
   });
 
@@ -28,20 +27,20 @@ export function AdSetDetailClient(): React.ReactElement {
   if (detail.isError) {
     return (
       <Alert variant="destructive">
-        <AlertDescription>Ad set yüklenemedi.</AlertDescription>
+        <AlertDescription>Reklam yüklenemedi.</AlertDescription>
       </Alert>
     );
   }
 
-  const adset = detail.data.adSet;
+  const ad = detail.data.ad;
 
   return (
     <>
       <div>
         <Button variant="ghost" size="sm" asChild>
-          <Link href={`/w/${slug}/campaigns/${adset.campaignId}`}>
+          <Link href={`/w/${slug}/adsets/${ad.adsetId}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Kampanyaya dön
+            Ad set’e dön
           </Link>
         </Button>
       </div>
@@ -49,33 +48,29 @@ export function AdSetDetailClient(): React.ReactElement {
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle>{adset.name}</CardTitle>
-              <CardDescription>{adset.metaAdSetId}</CardDescription>
+              <CardTitle>{ad.name}</CardTitle>
+              <CardDescription>{ad.metaAdId}</CardDescription>
             </div>
-            <Badge variant={statusVariant(adset.status)}>{adset.status}</Badge>
+            <Badge variant={statusVariant(ad.status)}>{ad.status}</Badge>
           </div>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 gap-3 text-sm">
-            <dt className="text-[hsl(var(--muted-foreground))]">Optimizasyon</dt>
-            <dd>{adset.optimizationGoal ?? '—'}</dd>
-            <dt className="text-[hsl(var(--muted-foreground))]">Faturalama</dt>
-            <dd>{adset.billingEvent ?? '—'}</dd>
-            <dt className="text-[hsl(var(--muted-foreground))]">Günlük bütçe</dt>
-            <dd>{adset.dailyBudgetCents ?? '—'}</dd>
-            <dt className="text-[hsl(var(--muted-foreground))]">Toplam bütçe</dt>
-            <dd>{adset.lifetimeBudgetCents ?? '—'}</dd>
+            <dt className="text-[hsl(var(--muted-foreground))]">Effective status</dt>
+            <dd>{ad.effectiveStatus ?? '—'}</dd>
+            <dt className="text-[hsl(var(--muted-foreground))]">Creative</dt>
+            <dd>{ad.creativeId ?? '—'}</dd>
+            <dt className="text-[hsl(var(--muted-foreground))]">Son sync</dt>
+            <dd>{new Date(ad.syncedAt).toLocaleString('tr-TR')}</dd>
           </dl>
         </CardContent>
       </Card>
 
-      <AdsPanel slug={slug} adsetId={id} />
-
       <InsightsCard
-        queryKey={['adset-insights', slug, id]}
+        queryKey={['ad-insights', slug, id]}
         currency={null}
-        fetcher={(from, to) => adSetsApi.insights(slug, id, from, to)}
-        syncer={(from, to) => adSetsApi.syncInsights(slug, id, { from, to })}
+        fetcher={(from, to) => adsApi.insights(slug, id, from, to)}
+        syncer={(from, to) => adsApi.syncInsights(slug, id, { from, to })}
       />
     </>
   );

@@ -1,7 +1,8 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Trash2 } from 'lucide-react';
+import { ArrowRight, RefreshCw, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -263,18 +264,25 @@ export function AdsPanel({ slug, adsetId }: Props): React.ReactElement {
                   </td>
                   <td className="py-2 text-xs">{a.creativeId ?? '—'}</td>
                   <td className="py-2 text-right">
-                    {canDelete && a.status !== 'DELETED' ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={del.isPending}
-                        onClick={() => {
-                          del.mutate(a.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="ghost" asChild>
+                        <Link href={`/w/${slug}/ads/${a.id}`}>
+                          <ArrowRight className="h-4 w-4" />
+                        </Link>
                       </Button>
-                    ) : null}
+                      {canDelete && a.status !== 'DELETED' ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={del.isPending}
+                          onClick={() => {
+                            del.mutate(a.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
