@@ -1,5 +1,38 @@
 # metaflow — progress report
 
+## Module 08 — Insights drill-down (AdSet + Ad)
+
+**Status:** ✅ Complete — 2026-04-20
+**Branch:** `main`
+**Module 09 handoff:** [`docs/module-09-handoff.md`](./docs/module-09-handoff.md)
+
+### Phases shipped (6/6)
+
+| Phase | Summary |
+|-------|---------|
+| 0 | Sanity: 48 integration tests green on main from module 07. |
+| 1 | Two new Prisma snapshot tables: `MetaAdSetInsightSnapshot` + `MetaAdInsightSnapshot` with unique `(adsetId, date)` / `(adId, date)` + cascade-on-delete from their parent. Same BigInt/Decimal metric shape as the campaign-level snapshot. Migration `20260420125014_adset_ad_insights_module_08`. Database index exports the two new types. |
+| 2 | `MetaApiClient` extended with `fetchAdSetInsights` + `fetchAdInsights` (+ two new snapshot types `MetaAdSetInsightSnapshot`, `MetaAdInsightSnapshot`, and the matching `FetchAdSetInsightsInput` / `FetchAdInsightsInput`). Mock now has a shared `synthesiseMetricRows` helper — three insight methods compute deterministically from the child-id hash so totals stay non-trivial in tests. Real binding has `fetchInsightRaw` that takes `level: 'adset' \| 'ad'` + `idField: 'adset.id' \| 'ad.id'` + `idKey: 'adset_id' \| 'ad_id'` and reshapes into the per-level snapshot. |
+| 3 | `InsightsService` gains `syncForAdSet / listForAdSet / syncForAd / listForAd`. Shared `loadAdSet` + `loadAd` resolve the adset/ad → parent ad-account → meta connection → decrypted token in one pass. Two new controller routes: `GET/POST /adsets/:id/insights` + `GET/POST /ads/:id/insights` — both gated by `insights:read`. shared-types grows `adSetInsightRowSchema / adSetInsightListResponseSchema` + `adInsightRowSchema / adInsightListResponseSchema`. |
+| 4 | Frontend: new reusable `<InsightsCard>` component (cache-aware, sync button, 14-day window, totals + per-day table) used on three places. AdSet detail page grows an Insights section. New `/w/[slug]/ads/[id]` page with detail card + InsightsCard. AdsPanel rows grow an arrow link into the ad detail page. |
+| 5 | Integration suite: `apps/api/test/integration/insights-drill-down.spec.ts` — adset sync populates 7 rows & totals, ad sync + list round-trip, inverted-range rejected, cross-workspace isolation. **Total integration suite: 52 tests across 16 files.** |
+| 6 | PROGRESS.md ✅. `docs/module-09-handoff.md` written. |
+
+### Test counts
+
+- `@metaflow/api` integration: **52 tests** across 16 files (48 modules 02-07 + 4 module 08)
+
+### Decisions locked
+
+1. **Separate snapshot tables per level, not a single table with a `level` column.** The "one table, three scopes" option was tempting but left the unique-constraint story messy (Postgres treats NULLs as distinct in composite unique indexes, so `(campaignId, adsetId, adId, date)` would allow duplicates at the campaign-only level). Three tables stays clean: each has a simple natural key and Prisma can model it with zero special cases.
+2. **Reusable `<InsightsCard>` takes a fetcher + syncer.** No client-side cache rewrite per scope; the component is scope-agnostic so the campaign detail page could flip to it later without code duplication.
+3. **`insights:read` gates all three levels.** No separate `insights:write` needed — sync endpoints only ever populate the cache, they don't mutate Meta state.
+4. **Mock synthesises from the child-id hash.** Same deterministic pattern as the existing campaign insights mock, just indexed by adset/ad id. Makes the integration test's "7 rows" assertion tautological — that's the point: the test verifies wiring + persistence, not the math.
+5. **No campaign-level rollup of adset/ad rows yet.** Campaign-level insights still pull from `meta_insight_snapshots` directly — we don't sum the children. Attribution models differ (spend at adset level may not equal spend at campaign level for edge cases). Meta is the source of truth per level.
+6. **Ad detail page is a first-class route, not a drawer.** `/w/[slug]/ads/[id]` mirrors the adset detail page shape so future per-ad actions (pause all, rotate creative, etc.) have a home.
+
+---
+
 ## Module 07 — Ads + Creatives
 
 **Status:** ✅ Complete — 2026-04-20
