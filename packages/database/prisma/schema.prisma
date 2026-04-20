@@ -419,8 +419,9 @@ model AdSet {
   createdAt           DateTime    @default(now()) @map("created_at")
   updatedAt           DateTime    @updatedAt @map("updated_at")
 
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  ads      Ad[]
+  campaign         Campaign                    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ads              Ad[]
+  insightSnapshots MetaAdSetInsightSnapshot[]
 
   @@unique([campaignId, metaAdSetId])
   @@index([workspaceId, status])
@@ -445,9 +446,10 @@ model Ad {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  campaign Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  adset    AdSet     @relation(fields: [adsetId], references: [id], onDelete: Cascade)
-  creative Creative? @relation(fields: [creativeId], references: [id], onDelete: SetNull)
+  campaign         Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  adset            AdSet                @relation(fields: [adsetId], references: [id], onDelete: Cascade)
+  creative         Creative?            @relation(fields: [creativeId], references: [id], onDelete: SetNull)
+  insightSnapshots MetaAdInsightSnapshot[]
 
   @@unique([adsetId, metaAdId])
   @@index([workspaceId, status])
@@ -503,6 +505,52 @@ model MetaInsightSnapshot {
   @@unique([campaignId, date])
   @@index([campaignId, date])
   @@map("meta_insight_snapshots")
+}
+
+/// MetaAdSetInsightSnapshot — per-(adset, date) daily roll-up. Mirrors
+/// MetaInsightSnapshot shape but keyed by adset so per-adset drill-down
+/// stays a simple index scan.
+model MetaAdSetInsightSnapshot {
+  id          String   @id @default(cuid())
+  adsetId     String   @map("adset_id")
+  date        DateTime @db.Date
+  impressions BigInt   @default(0)
+  clicks      BigInt   @default(0)
+  spendCents  BigInt   @default(0) @map("spend_cents")
+  conversions BigInt   @default(0)
+  reach       BigInt   @default(0)
+  frequency   Decimal  @default(0) @db.Decimal(10, 4)
+  cpmCents    BigInt?  @map("cpm_cents")
+  ctr         Decimal? @db.Decimal(10, 6)
+  syncedAt    DateTime @default(now()) @map("synced_at")
+
+  adset AdSet @relation(fields: [adsetId], references: [id], onDelete: Cascade)
+
+  @@unique([adsetId, date])
+  @@index([adsetId, date])
+  @@map("meta_adset_insight_snapshots")
+}
+
+/// MetaAdInsightSnapshot — per-(ad, date) daily roll-up for the leaf level.
+model MetaAdInsightSnapshot {
+  id          String   @id @default(cuid())
+  adId        String   @map("ad_id")
+  date        DateTime @db.Date
+  impressions BigInt   @default(0)
+  clicks      BigInt   @default(0)
+  spendCents  BigInt   @default(0) @map("spend_cents")
+  conversions BigInt   @default(0)
+  reach       BigInt   @default(0)
+  frequency   Decimal  @default(0) @db.Decimal(10, 4)
+  cpmCents    BigInt?  @map("cpm_cents")
+  ctr         Decimal? @db.Decimal(10, 6)
+  syncedAt    DateTime @default(now()) @map("synced_at")
+
+  ad Ad @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@unique([adId, date])
+  @@index([adId, date])
+  @@map("meta_ad_insight_snapshots")
 }
 
 // ==================================================================

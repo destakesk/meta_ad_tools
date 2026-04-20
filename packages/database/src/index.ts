@@ -8,6 +8,8 @@ export type {
   HealthCheck,
   Invitation,
   MetaAdAccount,
+  MetaAdInsightSnapshot,
+  MetaAdSetInsightSnapshot,
   MetaConnection,
   MetaInsightSnapshot,
   Organization,
