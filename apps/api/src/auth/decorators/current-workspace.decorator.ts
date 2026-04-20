@@ -1,6 +1,7 @@
 import { createParamDecorator } from '@nestjs/common';
-import type { ExecutionContext } from '@nestjs/common';
+
 import type { Workspace, WorkspaceMembership } from '@metaflow/database';
+import type { ExecutionContext } from '@nestjs/common';
 
 export interface WorkspaceContext {
   workspace: Workspace;

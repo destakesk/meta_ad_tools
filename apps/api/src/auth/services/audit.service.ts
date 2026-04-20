@@ -1,8 +1,8 @@
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import type { Queue } from 'bullmq';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 
 import type { AuditAction, AuditMetadata } from '@metaflow/shared-types';
+import type { Queue } from 'bullmq';
 
 export const AUDIT_QUEUE = 'audit-queue';
 

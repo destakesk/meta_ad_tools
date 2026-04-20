@@ -1,11 +1,11 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import type { Job } from 'bullmq';
 
-import { PrismaService } from '../prisma/prisma.service.js';
 import { AUDIT_QUEUE } from '../auth/services/audit.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 import type { AuditEvent } from '../auth/services/audit.service.js';
+import type { Job } from 'bullmq';
 
 @Processor(AUDIT_QUEUE)
 export class AuditProcessor extends WorkerHost {

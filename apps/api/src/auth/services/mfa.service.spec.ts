@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it } from 'vitest';
 import { authenticator } from 'otplib';
-import type { ConfigService } from '@nestjs/config';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { MfaService } from './mfa.service.js';
+
 import type { AppConfig } from '../../config/configuration.js';
+import type { ConfigService } from '@nestjs/config';
 
 type TestConfig = ConfigService<AppConfig, true>;
 

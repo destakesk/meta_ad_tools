@@ -1,14 +1,14 @@
+import { permissionScope } from '@metaflow/shared-types';
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { permissionScope } from '@metaflow/shared-types';
-import type { PermissionKey } from '@metaflow/shared-types';
-import type { Workspace } from '@metaflow/database';
-import type { Request } from 'express';
 
 import { PermissionResolver } from '../../permissions/permission-resolver.service.js';
 import { REQUIRED_PERMISSION_KEY } from '../decorators/require-permission.decorator.js';
 
 import type { RequestUser } from '../decorators/current-user.decorator.js';
+import type { Workspace } from '@metaflow/database';
+import type { PermissionKey } from '@metaflow/shared-types';
+import type { Request } from 'express';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {

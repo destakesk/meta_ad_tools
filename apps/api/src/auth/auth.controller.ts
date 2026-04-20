@@ -14,12 +14,16 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
-import type { Request, Response } from 'express';
 
+import {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  clearRefreshCookie,
+  setRefreshCookie,
+} from '../common/helpers/cookies.js';
 import { extractIp } from '../common/throttling/ip.js';
+
 import { AuthService } from './auth.service.js';
-import { CustomHeaderGuard } from './guards/custom-header.guard.js';
-import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { CurrentUser, type RequestUser } from './decorators/current-user.decorator.js';
 import { Public } from './decorators/public.decorator.js';
 import {
@@ -34,15 +38,12 @@ import {
   ResendVerificationDto,
   ResetPasswordDto,
 } from './dto/index.js';
+import { CustomHeaderGuard } from './guards/custom-header.guard.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 import { SessionService } from './services/session.service.js';
-import {
-  ACCESS_COOKIE,
-  REFRESH_COOKIE,
-  clearRefreshCookie,
-  setRefreshCookie,
-} from '../common/helpers/cookies.js';
 
 import type { AppConfig } from '../config/configuration.js';
+import type { Request, Response } from 'express';
 
 @Controller('auth')
 @UseGuards(JwtAuthGuard, CustomHeaderGuard)

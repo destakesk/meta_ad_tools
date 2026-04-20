@@ -1,8 +1,8 @@
 import { randomInt } from 'node:crypto';
 
-import bcrypt from 'bcrypt';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import bcrypt from 'bcrypt';
 import { authenticator } from 'otplib';
 import qrcode from 'qrcode';
 

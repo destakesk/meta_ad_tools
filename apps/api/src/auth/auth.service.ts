@@ -1,3 +1,4 @@
+import { InvitationStatus, OrgRole, WorkspaceRole } from '@metaflow/database';
 import {
   BadRequestException,
   ForbiddenException,
@@ -7,22 +8,22 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InvitationStatus, OrgRole, WorkspaceRole } from '@metaflow/database';
-import type { Prisma } from '@metaflow/database';
 
 import { CryptoService } from '../crypto/crypto.service.js';
 import { EmailService } from '../email/email.service.js';
+import { PermissionResolver } from '../permissions/permission-resolver.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RedisService } from '../redis/redis.service.js';
+
 import { AuditService } from './services/audit.service.js';
 import { AuthRateLimitService } from './services/auth-rate-limit.service.js';
 import { MfaService } from './services/mfa.service.js';
 import { PasswordService } from './services/password.service.js';
 import { SessionService } from './services/session.service.js';
 import { TokenService } from './services/token.service.js';
-import { PermissionResolver } from '../permissions/permission-resolver.service.js';
 
 import type { AppConfig } from '../config/configuration.js';
+import type { Prisma } from '@metaflow/database';
 import type { AuditMetadata, LoginResponse } from '@metaflow/shared-types';
 
 export interface RequestContext {
@@ -283,7 +284,7 @@ export class AuthService {
     if (rl.limited) throw new ForbiddenException('too_many_attempts');
 
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user || !user.mfaSecret || !user.mfaEnabledAt)
+    if (!user?.mfaSecret || !user.mfaEnabledAt)
       throw new UnauthorizedException('mfa_not_configured');
 
     const secret = this.crypto.decrypt(user.mfaSecret, user.id);

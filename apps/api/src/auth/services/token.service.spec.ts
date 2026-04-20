@@ -1,9 +1,11 @@
 import { randomBytes } from 'node:crypto';
+
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { ConfigService } from '@nestjs/config';
 
 import { TokenService } from './token.service.js';
+
 import type { AppConfig } from '../../config/configuration.js';
+import type { ConfigService } from '@nestjs/config';
 
 type TestConfig = ConfigService<AppConfig, true>;
 

@@ -22,16 +22,16 @@ import {
   Matches,
 } from 'class-validator';
 
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
-import { CustomHeaderGuard } from '../auth/guards/custom-header.guard.js';
 import { CurrentUser, type RequestUser } from '../auth/decorators/current-user.decorator.js';
-import { CryptoService } from '../crypto/crypto.service.js';
+import { CustomHeaderGuard } from '../auth/guards/custom-header.guard.js';
+import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { AuditService } from '../auth/services/audit.service.js';
 import { MfaService } from '../auth/services/mfa.service.js';
 import { PasswordService } from '../auth/services/password.service.js';
+import { CryptoService } from '../crypto/crypto.service.js';
 import { PermissionResolver } from '../permissions/permission-resolver.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { AuditService } from '../auth/services/audit.service.js';
 
 import type { AppConfig } from '../config/configuration.js';
 

@@ -1,6 +1,7 @@
 import { createParamDecorator } from '@nestjs/common';
-import type { ExecutionContext } from '@nestjs/common';
+
 import type { Session } from '@metaflow/database';
+import type { ExecutionContext } from '@nestjs/common';
 
 export const CurrentSession = createParamDecorator((_: unknown, ctx: ExecutionContext): Session => {
   const req = ctx.switchToHttp().getRequest<{ session?: Session }>();

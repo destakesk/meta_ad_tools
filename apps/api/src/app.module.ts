@@ -18,11 +18,11 @@ import { InvitationsModule } from './invitations/invitations.module.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
 import { PermissionsModule } from './permissions/permissions.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
-import { UsersModule } from './users/users.module.js';
-import { WorkspacesModule } from './workspaces/workspaces.module.js';
 import { QueueModule } from './queue/queue.module.js';
 import { RedisModule } from './redis/redis.module.js';
 import { SessionModule } from './session/session.module.js';
+import { UsersModule } from './users/users.module.js';
+import { WorkspacesModule } from './workspaces/workspaces.module.js';
 
 import type { AppConfig } from './config/configuration.js';
 

@@ -1,9 +1,10 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
-import type { Observable } from 'rxjs';
 
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
+
+import type { Observable } from 'rxjs';
 
 type CanActivateReturn = boolean | Promise<boolean> | Observable<boolean>;
 

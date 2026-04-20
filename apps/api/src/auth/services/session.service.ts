@@ -3,10 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { UAParser } from 'ua-parser-js';
 
 import { PrismaService } from '../../prisma/prisma.service.js';
+
 import { TokenService } from './token.service.js';
 
-import type { Session } from '@metaflow/database';
 import type { AppConfig } from '../../config/configuration.js';
+import type { Session } from '@metaflow/database';
 import type { RevokedReason } from '@metaflow/shared-types';
 
 /**

@@ -2,14 +2,14 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import type { Request } from 'express';
 
-import { RedisService } from '../../redis/redis.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { RedisService } from '../../redis/redis.service.js';
 
 import type { AppConfig } from '../../config/configuration.js';
-import type { AccessTokenPayload } from '../services/token.service.js';
 import type { RequestUser } from '../decorators/current-user.decorator.js';
+import type { AccessTokenPayload } from '../services/token.service.js';
+import type { Request } from 'express';
 
 function extractFromCookie(req: Request): string | null {
   const cookies = (req as unknown as { cookies?: Record<string, string> }).cookies;

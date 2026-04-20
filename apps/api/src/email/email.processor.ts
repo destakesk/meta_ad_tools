@@ -6,20 +6,20 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { render } from '@react-email/render';
 import { Resend } from 'resend';
-import type { Job } from 'bullmq';
 
 import { EMAIL_QUEUE } from './email.service.js';
 import { InvitationTemplate } from './templates/invitation.js';
 import { PasswordResetTemplate } from './templates/password-reset.js';
 import { VerifyEmailTemplate } from './templates/verify-email.js';
 
-import type { AppConfig } from '../config/configuration.js';
 import type {
   EmailJobName,
   InvitationJob,
   PasswordResetJob,
   VerifyEmailJob,
 } from './email.service.js';
+import type { AppConfig } from '../config/configuration.js';
+import type { Job } from 'bullmq';
 
 /**
  * Renders + delivers transactional mail.

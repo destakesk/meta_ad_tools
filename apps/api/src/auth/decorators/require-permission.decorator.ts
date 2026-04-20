@@ -1,4 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
+
 import type { PermissionKey } from '@metaflow/shared-types';
 
 export const REQUIRED_PERMISSION_KEY = 'auth:required-permission';

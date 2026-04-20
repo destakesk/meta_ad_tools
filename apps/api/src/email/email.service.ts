@@ -1,5 +1,6 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, Optional } from '@nestjs/common';
+
 import type { Queue } from 'bullmq';
 
 export const EMAIL_QUEUE = 'email-queue';

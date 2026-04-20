@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
 import { OrgRole, ROLE_PERMISSIONS, WorkspaceRole } from '@metaflow/database';
-import type { PermissionKey } from '@metaflow/shared-types';
+import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RedisService } from '../redis/redis.service.js';
+
+import type { PermissionKey } from '@metaflow/shared-types';
 
 /**
  * Resolves whether a given user has a given permission, with two inheritance

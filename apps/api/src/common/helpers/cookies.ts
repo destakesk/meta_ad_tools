@@ -1,6 +1,5 @@
-import type { Response } from 'express';
-
 import type { AppConfig } from '../../config/configuration.js';
+import type { Response } from 'express';
 
 export const REFRESH_COOKIE = 'metaflow_refresh';
 export const ACCESS_COOKIE = 'metaflow_access';

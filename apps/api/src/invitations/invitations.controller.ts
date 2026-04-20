@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Type } from 'class-transformer';
 import {
   IsEmail,
   IsObject,
@@ -17,12 +18,11 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 import { AuthService } from '../auth/auth.service.js';
+import { Public } from '../auth/decorators/public.decorator.js';
 import { CustomHeaderGuard } from '../auth/guards/custom-header.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { Public } from '../auth/decorators/public.decorator.js';
 import { OrganizationsService } from '../organizations/organizations.service.js';
 
 class AcceptUserDataDto {

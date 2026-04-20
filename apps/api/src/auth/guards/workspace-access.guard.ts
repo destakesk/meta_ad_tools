@@ -1,3 +1,4 @@
+import { OrgRole } from '@metaflow/database';
 import {
   CanActivate,
   ExecutionContext,
@@ -5,12 +6,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrgRole } from '@metaflow/database';
-import type { Request } from 'express';
 
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 import type { RequestUser } from '../decorators/current-user.decorator.js';
+import type { Request } from 'express';
 
 /**
  * Resolves `:workspaceSlug` (URL param) → Workspace + membership for the
@@ -56,7 +56,7 @@ export class WorkspaceAccessGuard implements CanActivate {
           },
         },
       });
-      if (!orgMembership || orgMembership.role !== OrgRole.OWNER) {
+      if (orgMembership?.role !== OrgRole.OWNER) {
         throw new ForbiddenException('workspace_access_denied');
       }
     }

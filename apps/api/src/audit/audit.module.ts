@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
 import { AuditService, AUDIT_QUEUE } from '../auth/services/audit.service.js';
+
 import { AuditProcessor } from './audit.processor.js';
 
 @Module({
