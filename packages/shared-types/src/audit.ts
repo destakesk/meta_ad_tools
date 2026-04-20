@@ -23,6 +23,13 @@ export const auditActionSchema = z.enum([
   'workspace.deleted',
   'workspace.renamed',
   'organization.renamed',
+  'meta.oauth.initiated',
+  'meta.oauth.callback.success',
+  'meta.oauth.callback.failed',
+  'meta.connection.connected',
+  'meta.connection.rotated',
+  'meta.connection.disconnected',
+  'meta.adaccounts.synced',
 ]);
 export type AuditAction = z.infer<typeof auditActionSchema>;
 

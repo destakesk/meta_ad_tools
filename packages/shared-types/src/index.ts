@@ -8,3 +8,4 @@ export * from './invitation';
 export * from './session';
 export * from './permission';
 export * from './audit';
+export * from './meta';
