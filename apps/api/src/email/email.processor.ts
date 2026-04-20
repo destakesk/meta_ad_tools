@@ -36,7 +36,7 @@ export class EmailProcessor extends WorkerHost {
   private readonly verifyUrlBase: string;
   private readonly resetUrlBase: string;
   private readonly invitationUrlBase: string;
-  private readonly mailDir = join(process.cwd(), 'tmp', 'mail');
+  private readonly mailDir = process.env['MAIL_DUMP_DIR'] ?? join(process.cwd(), 'tmp', 'mail');
 
   constructor(config: ConfigService<AppConfig, true>) {
     super();
@@ -76,6 +76,7 @@ export class EmailProcessor extends WorkerHost {
       text,
       jobName: 'verify-email',
       link,
+      token: data.token,
     });
   }
 
@@ -91,6 +92,7 @@ export class EmailProcessor extends WorkerHost {
       text,
       jobName: 'password-reset',
       link,
+      token: data.token,
     });
   }
 
@@ -111,6 +113,7 @@ export class EmailProcessor extends WorkerHost {
       text,
       jobName: 'invitation',
       link,
+      token: data.token,
     });
   }
 
@@ -121,6 +124,7 @@ export class EmailProcessor extends WorkerHost {
     text: string;
     jobName: EmailJobName;
     link: string;
+    token: string;
   }): Promise<void> {
     if (this.resend) {
       await this.resend.emails.send({
@@ -143,7 +147,9 @@ export class EmailProcessor extends WorkerHost {
         {
           to: input.to,
           subject: input.subject,
+          template: input.jobName,
           link: input.link,
+          token: input.token,
           html: input.html,
           text: input.text,
         },
