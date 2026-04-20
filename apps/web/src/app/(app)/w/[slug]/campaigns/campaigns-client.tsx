@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 
+import { CreateCampaignDialog } from '@/components/campaigns/create-campaign-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,12 +15,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { campaignsApi } from '@/lib/api/campaigns';
 import { ApiError } from '@/lib/api/client';
 import { metaApi } from '@/lib/api/meta';
+import { useCan } from '@/lib/auth/use-can';
 import { formatCents } from '@/lib/format';
 
 export function CampaignsClient(): React.ReactElement {
   const params = useParams<{ slug: string }>();
   const slug = params.slug;
   const qc = useQueryClient();
+
+  const canWrite = useCan('campaign:write');
 
   const metaStatus = useQuery({
     queryKey: ['meta', slug, 'connection'],
@@ -84,6 +88,9 @@ export function CampaignsClient(): React.ReactElement {
           <RefreshCw className="mr-2 h-4 w-4" />
           {sync.isPending ? 'Senkronize ediliyor…' : 'Meta’dan senkronize et'}
         </Button>
+        {canWrite ? (
+          <CreateCampaignDialog slug={slug} trigger={<Button size="sm">Yeni kampanya</Button>} />
+        ) : null}
       </div>
 
       {syncError ? (

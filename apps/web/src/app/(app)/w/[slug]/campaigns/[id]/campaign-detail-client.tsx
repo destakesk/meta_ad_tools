@@ -1,17 +1,30 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { campaignsApi } from '@/lib/api/campaigns';
+import { ApiError } from '@/lib/api/client';
+import { useCan } from '@/lib/auth/use-can';
 import { formatCents, formatInteger, formatPercent } from '@/lib/format';
 
 const DAYS = 14;
@@ -30,6 +43,16 @@ export function CampaignDetailClient(): React.ReactElement {
   const params = useParams<{ slug: string; id: string }>();
   const slug = params.slug;
   const id = params.id;
+  const router = useRouter();
+  const qc = useQueryClient();
+
+  const canWrite = useCan('campaign:write');
+  const canDelete = useCan('campaign:delete');
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editStatus, setEditStatus] = useState<'ACTIVE' | 'PAUSED'>('PAUSED');
 
   const { from, to } = useMemo(() => lastNDaysRange(DAYS), []);
 
@@ -37,6 +60,26 @@ export function CampaignDetailClient(): React.ReactElement {
     queryKey: ['campaign', slug, id],
     queryFn: () => campaignsApi.detail(slug, id),
     staleTime: 30_000,
+  });
+
+  const update = useMutation({
+    mutationFn: (body: { name?: string; status?: 'ACTIVE' | 'PAUSED' }) =>
+      campaignsApi.update(slug, id, body),
+    onSuccess: () => {
+      toast.success('Kampanya güncellendi');
+      void qc.invalidateQueries({ queryKey: ['campaign', slug, id] });
+      void qc.invalidateQueries({ queryKey: ['campaigns', slug] });
+      setEditOpen(false);
+    },
+  });
+
+  const del = useMutation({
+    mutationFn: () => campaignsApi.delete(slug, id),
+    onSuccess: () => {
+      toast.success('Kampanya silindi');
+      void qc.invalidateQueries({ queryKey: ['campaigns', slug] });
+      router.push(`/w/${slug}/campaigns`);
+    },
   });
 
   const insights = useQuery({
@@ -72,7 +115,33 @@ export function CampaignDetailClient(): React.ReactElement {
               {c.metaAdAccountId} · {c.metaCampaignId}
             </CardDescription>
           </div>
-          <Badge>{c.status}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge>{c.status}</Badge>
+            {canWrite ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setEditName(c.name);
+                  setEditStatus(c.status === 'ACTIVE' ? 'ACTIVE' : 'PAUSED');
+                  setEditOpen(true);
+                }}
+              >
+                Düzenle
+              </Button>
+            ) : null}
+            {canDelete ? (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  setDeleteOpen(true);
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Sil
+              </Button>
+            ) : null}
+          </div>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
@@ -170,6 +239,105 @@ export function CampaignDetailClient(): React.ReactElement {
           )}
         </CardContent>
       </Card>
+
+      <Dialog
+        open={editOpen}
+        onOpenChange={(o) => {
+          setEditOpen(o);
+          if (!o) update.reset();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Kampanyayı düzenle</DialogTitle>
+            <DialogDescription>
+              Adı ve durumu güncelleyebilirsin. Bütçe değişiklikleri için ayrı bir akış Module 06’da
+              gelecek.
+            </DialogDescription>
+          </DialogHeader>
+          {update.error instanceof ApiError ? (
+            <Alert variant="destructive">
+              <AlertDescription>{update.error.body.message}</AlertDescription>
+            </Alert>
+          ) : null}
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="edit-name">Ad</Label>
+              <Input
+                id="edit-name"
+                value={editName}
+                onChange={(e) => {
+                  setEditName(e.target.value);
+                }}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="edit-status">Durum</Label>
+              <select
+                id="edit-status"
+                value={editStatus}
+                onChange={(e) => {
+                  setEditStatus(e.target.value as 'ACTIVE' | 'PAUSED');
+                }}
+                className="flex h-10 w-full rounded-md border bg-[hsl(var(--background))] px-3 py-2 text-sm"
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="PAUSED">PAUSED</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditOpen(false);
+              }}
+            >
+              İptal
+            </Button>
+            <Button
+              disabled={update.isPending || editName.length === 0}
+              onClick={() => {
+                update.mutate({ name: editName, status: editStatus });
+              }}
+            >
+              {update.isPending ? 'Kaydediliyor…' : 'Kaydet'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Kampanyayı sil</DialogTitle>
+            <DialogDescription>
+              Bu işlem Meta tarafında kampanyanın statüsünü DELETED yapar ve local cache’te de
+              DELETED olarak işaretler. Geri almak için Meta’dan manuel yeniden etkinleştirmen
+              gerekir.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteOpen(false);
+              }}
+            >
+              İptal
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={del.isPending}
+              onClick={() => {
+                del.mutate();
+              }}
+            >
+              {del.isPending ? 'Siliniyor…' : 'Evet, sil'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
