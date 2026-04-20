@@ -7,6 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
+import { AdSetsPanel } from '@/components/campaigns/adsets-panel';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -180,6 +181,8 @@ export function CampaignDetailClient(): React.ReactElement {
           </dl>
         </CardContent>
       </Card>
+
+      <AdSetsPanel slug={slug} campaignId={id} currency={c.currency} />
 
       <Card>
         <CardHeader>
