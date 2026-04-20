@@ -32,13 +32,18 @@ export function middleware(request: NextRequest): NextResponse {
   const isDev = process.env.NODE_ENV === 'development';
   const { pathname, search } = request.nextUrl;
 
+  // Cross-origin API calls need the API origin in connect-src.
+  // NEXT_PUBLIC_API_URL is inlined at build time; in dev we keep the
+  // localhost:3001 fallback so local + prod both work without a rebuild.
+  const apiOrigin = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001';
+
   const cspDirectives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
+    "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    "connect-src 'self' http://localhost:3001 https://*.sentry.io",
+    `connect-src 'self' ${apiOrigin} https://*.sentry.io`,
     "frame-ancestors 'none'",
     "form-action 'self'",
     "base-uri 'self'",
