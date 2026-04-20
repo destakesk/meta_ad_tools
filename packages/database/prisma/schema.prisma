@@ -6,6 +6,9 @@
 // Module 03: Meta Ads connection — MetaConnection (encrypted Meta tokens
 // stored per workspace), MetaAdAccount (cached ad-account list per
 // connection).
+// Module 04: Campaigns + Insights — Campaign (read-through cache of Meta
+// campaigns) + MetaInsightSnapshot (daily performance rows pulled from
+// the Graph /insights endpoint).
 //
 // Hashing strategy (anchor decision):
 //   - bcrypt:  passwordHash, mfaBackupCodes       (user-derived, low-entropy)
@@ -52,6 +55,14 @@ enum MetaConnectionStatus {
   ACTIVE
   EXPIRED
   REVOKED
+}
+
+enum CampaignStatus {
+  ACTIVE
+  PAUSED
+  DELETED
+  ARCHIVED
+  UNKNOWN
 }
 
 // ==================================================================
@@ -319,10 +330,68 @@ model MetaAdAccount {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   connection MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  campaigns  Campaign[]
 
   @@unique([connectionId, metaAdAccountId])
   @@index([connectionId])
   @@map("meta_ad_accounts")
+}
+
+// ==================================================================
+// Campaigns + Insights (Module 04)
+// ==================================================================
+
+/// Campaign — read-through cache of a Meta campaign. Budget amounts are
+/// stored as integer minor units (cents/kuruş) to avoid floating-point
+/// rounding across the aggregation chain.
+model Campaign {
+  id                  String          @id @default(cuid())
+  workspaceId         String          @map("workspace_id")
+  adAccountId         String          @map("ad_account_id")
+  metaCampaignId      String          @map("meta_campaign_id")
+  name                String
+  objective           String?
+  status              CampaignStatus  @default(UNKNOWN)
+  dailyBudgetCents    BigInt?         @map("daily_budget_cents")
+  lifetimeBudgetCents BigInt?         @map("lifetime_budget_cents")
+  currency            String?
+  startTime           DateTime?       @map("start_time")
+  endTime             DateTime?       @map("end_time")
+  syncedAt            DateTime        @default(now()) @map("synced_at")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  adAccount MetaAdAccount         @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
+  insights  MetaInsightSnapshot[]
+
+  @@unique([adAccountId, metaCampaignId])
+  @@index([workspaceId, status])
+  @@index([adAccountId])
+  @@map("campaigns")
+}
+
+/// MetaInsightSnapshot — one row per (campaign, date). Append-only as a
+/// daily roll-up; we upsert so re-syncing an already-cached range is
+/// idempotent and corrects any late-arriving numbers.
+model MetaInsightSnapshot {
+  id          String   @id @default(cuid())
+  campaignId  String   @map("campaign_id")
+  date        DateTime @db.Date
+  impressions BigInt   @default(0)
+  clicks      BigInt   @default(0)
+  spendCents  BigInt   @default(0) @map("spend_cents")
+  conversions BigInt   @default(0)
+  reach       BigInt   @default(0)
+  frequency   Decimal  @default(0) @db.Decimal(10, 4)
+  cpmCents    BigInt?  @map("cpm_cents")
+  ctr         Decimal? @db.Decimal(10, 6)
+  syncedAt    DateTime @default(now()) @map("synced_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, date])
+  @@index([campaignId, date])
+  @@map("meta_insight_snapshots")
 }
 
 // ==================================================================

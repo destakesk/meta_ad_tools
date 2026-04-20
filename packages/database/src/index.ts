@@ -1,10 +1,12 @@
 export * from './client';
 export type {
   AuditLog,
+  Campaign,
   HealthCheck,
   Invitation,
   MetaAdAccount,
   MetaConnection,
+  MetaInsightSnapshot,
   Organization,
   OrganizationMembership,
   Permission,
@@ -16,6 +18,7 @@ export type {
   WorkspaceMembership,
 } from '../generated/client';
 export {
+  CampaignStatus,
   InvitationStatus,
   MetaConnectionStatus,
   OrgRole,
