@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -17,6 +18,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Matches,
   Min,
   MinLength,
   MaxLength,
@@ -33,6 +35,7 @@ import { PermissionGuard } from '../auth/guards/permission.guard.js';
 import { WorkspaceAccessGuard } from '../auth/guards/workspace-access.guard.js';
 
 import { AdSetsService } from './adsets.service.js';
+import { InsightsService } from './insights.service.js';
 
 class CreateAdSetDto {
   @IsString() @MinLength(1) @MaxLength(200) name!: string;
@@ -47,6 +50,16 @@ class CreateAdSetDto {
   @IsOptional() @IsISO8601() endTime?: string;
 
   @IsOptional() @IsObject() targeting?: Record<string, unknown>;
+}
+
+class InsightQueryDto {
+  @IsISO8601() from!: string;
+  @IsISO8601() to!: string;
+}
+
+class InsightSyncDto {
+  @Matches(/^\d{4}-\d{2}-\d{2}$/) from!: string;
+  @Matches(/^\d{4}-\d{2}-\d{2}$/) to!: string;
 }
 
 class UpdateAdSetDto {
@@ -148,13 +161,38 @@ export class CampaignAdSetsController {
   PermissionGuard,
 )
 export class AdSetsController {
-  constructor(private readonly adsets: AdSetsService) {}
+  constructor(
+    private readonly adsets: AdSetsService,
+    private readonly insights: InsightsService,
+  ) {}
 
   @Get(':id')
   @RequirePermission('campaign:read')
   async detail(@CurrentWorkspace() ws: { workspace: { id: string } }, @Param('id') id: string) {
     const adSet = await this.adsets.getById(ws.workspace.id, id);
     return { adSet };
+  }
+
+  @Get(':id/insights')
+  @RequirePermission('insights:read')
+  async insightsList(
+    @CurrentWorkspace() ws: { workspace: { id: string } },
+    @Param('id') id: string,
+    @Query() query: InsightQueryDto,
+  ) {
+    return this.insights.listForAdSet(ws.workspace.id, id, query.from, query.to);
+  }
+
+  @Post(':id/insights/sync')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission('insights:read')
+  async insightsSync(
+    @CurrentUser() user: RequestUser,
+    @CurrentWorkspace() ws: { workspace: { id: string } },
+    @Param('id') id: string,
+    @Body() dto: InsightSyncDto,
+  ) {
+    return this.insights.syncForAdSet(ws.workspace.id, user.userId, id, dto.from, dto.to);
   }
 
   @Patch(':id')

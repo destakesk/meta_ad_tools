@@ -12,12 +12,16 @@ import type {
   DeleteCampaignInput,
   DeleteCreativeInput,
   ExchangeCodeInput,
+  FetchAdInsightsInput,
+  FetchAdSetInsightsInput,
   FetchAdSetsInput,
   FetchAdsInput,
   FetchCampaignsInput,
   FetchCreativesInput,
   FetchInsightsInput,
   MetaAdAccountSnapshot,
+  MetaAdInsightSnapshot,
+  MetaAdSetInsightSnapshot,
   MetaAdSetSnapshot,
   MetaAdSetStatus,
   MetaAdSnapshot,
@@ -247,6 +251,128 @@ export class RealMetaApiClient implements MetaApiClient {
       frequency: row.frequency !== undefined ? Number(row.frequency) : 0,
       cpmCents: row.cpm !== undefined ? toMinorUnits(row.cpm) : null,
       ctr: row.ctr !== undefined ? Number(row.ctr) : null,
+    }));
+  }
+
+  async fetchAdSetInsights(input: FetchAdSetInsightsInput): Promise<MetaAdSetInsightSnapshot[]> {
+    const body = await this.fetchInsightRaw({
+      accessToken: input.accessToken,
+      metaAdAccountId: input.metaAdAccountId,
+      level: 'adset',
+      idField: 'adset.id',
+      idKey: 'adset_id',
+      ids: input.metaAdSetIds,
+      from: input.from,
+      to: input.to,
+    });
+    return body.map((row) => ({
+      metaAdSetId: row.id,
+      date: row.date,
+      impressions: row.impressions,
+      clicks: row.clicks,
+      spendCents: row.spendCents,
+      conversions: row.conversions,
+      reach: row.reach,
+      frequency: row.frequency,
+      cpmCents: row.cpmCents,
+      ctr: row.ctr,
+    }));
+  }
+
+  async fetchAdInsights(input: FetchAdInsightsInput): Promise<MetaAdInsightSnapshot[]> {
+    const body = await this.fetchInsightRaw({
+      accessToken: input.accessToken,
+      metaAdAccountId: input.metaAdAccountId,
+      level: 'ad',
+      idField: 'ad.id',
+      idKey: 'ad_id',
+      ids: input.metaAdIds,
+      from: input.from,
+      to: input.to,
+    });
+    return body.map((row) => ({
+      metaAdId: row.id,
+      date: row.date,
+      impressions: row.impressions,
+      clicks: row.clicks,
+      spendCents: row.spendCents,
+      conversions: row.conversions,
+      reach: row.reach,
+      frequency: row.frequency,
+      cpmCents: row.cpmCents,
+      ctr: row.ctr,
+    }));
+  }
+
+  /**
+   * Shared shape for adset/ad insight fetches — Graph uses a `level` +
+   * `filtering` pair that's symmetric per level, so we unify the call here
+   * and let the two public methods reshape into the per-level snapshot.
+   */
+  private async fetchInsightRaw(opts: {
+    accessToken: string;
+    metaAdAccountId: string;
+    level: 'adset' | 'ad';
+    idField: 'adset.id' | 'ad.id';
+    idKey: 'adset_id' | 'ad_id';
+    ids: string[];
+    from: string;
+    to: string;
+  }): Promise<
+    {
+      id: string;
+      date: string;
+      impressions: string;
+      clicks: string;
+      spendCents: string;
+      conversions: string;
+      reach: string;
+      frequency: number;
+      cpmCents: string | null;
+      ctr: number | null;
+    }[]
+  > {
+    const url = new URL(`${GRAPH_BASE}/${opts.metaAdAccountId}/insights`);
+    url.searchParams.set('level', opts.level);
+    url.searchParams.set('time_increment', '1');
+    url.searchParams.set('time_range', JSON.stringify({ since: opts.from, until: opts.to }));
+    url.searchParams.set(
+      'filtering',
+      JSON.stringify([{ field: opts.idField, operator: 'IN', value: opts.ids }]),
+    );
+    url.searchParams.set(
+      'fields',
+      [
+        opts.idKey,
+        'date_start',
+        'impressions',
+        'clicks',
+        'spend',
+        'conversions',
+        'reach',
+        'frequency',
+        'cpm',
+        'ctr',
+      ].join(','),
+    );
+    url.searchParams.set('limit', '500');
+    url.searchParams.set('access_token', opts.accessToken);
+    const res = await fetch(url);
+    if (!res.ok) throw new BadGatewayException('meta_insights_fetch_failed');
+    const body = (await res.json()) as {
+      data: Record<string, string | undefined>[];
+    };
+    return body.data.map((row) => ({
+      id: String(row[opts.idKey] ?? ''),
+      date: String(row['date_start'] ?? ''),
+      impressions: row['impressions'] ?? '0',
+      clicks: row['clicks'] ?? '0',
+      spendCents: toMinorUnits(row['spend'] ?? '0'),
+      conversions: row['conversions'] ?? '0',
+      reach: row['reach'] ?? '0',
+      frequency: row['frequency'] !== undefined ? Number(row['frequency']) : 0,
+      cpmCents: row['cpm'] !== undefined ? toMinorUnits(row['cpm']) : null,
+      ctr: row['ctr'] !== undefined ? Number(row['ctr']) : null,
     }));
   }
 

@@ -13,12 +13,16 @@ import type {
   DeleteCampaignInput,
   DeleteCreativeInput,
   ExchangeCodeInput,
+  FetchAdInsightsInput,
+  FetchAdSetInsightsInput,
   FetchAdSetsInput,
   FetchAdsInput,
   FetchCampaignsInput,
   FetchCreativesInput,
   FetchInsightsInput,
   MetaAdAccountSnapshot,
+  MetaAdInsightSnapshot,
+  MetaAdSetInsightSnapshot,
   MetaAdSetSnapshot,
   MetaAdSnapshot,
   MetaApiClient,
@@ -338,6 +342,24 @@ export class MockMetaApiClient implements MetaApiClient {
     return Promise.resolve(rows);
   }
 
+  fetchAdSetInsights(input: FetchAdSetInsightsInput): Promise<MetaAdSetInsightSnapshot[]> {
+    return Promise.resolve(
+      synthesiseMetricRows(input.metaAdSetIds, input.from, input.to).map((r) => ({
+        metaAdSetId: r.id,
+        ...r.metrics,
+      })),
+    );
+  }
+
+  fetchAdInsights(input: FetchAdInsightsInput): Promise<MetaAdInsightSnapshot[]> {
+    return Promise.resolve(
+      synthesiseMetricRows(input.metaAdIds, input.from, input.to).map((r) => ({
+        metaAdId: r.id,
+        ...r.metrics,
+      })),
+    );
+  }
+
   fetchAdSets(input: FetchAdSetsInput): Promise<MetaAdSetSnapshot[]> {
     const list = getOrInitAdSetStore(input.metaCampaignId);
     return Promise.resolve(list.filter((s) => s.status !== 'DELETED'));
@@ -479,4 +501,60 @@ function hashString(s: string): number {
     h = (h * 31 + s.charCodeAt(i)) | 0;
   }
   return h;
+}
+
+interface SynthesisedMetrics {
+  date: string;
+  impressions: string;
+  clicks: string;
+  spendCents: string;
+  conversions: string;
+  reach: string;
+  frequency: number;
+  cpmCents: string | null;
+  ctr: number | null;
+}
+
+/**
+ * Shared across the three insight-level mocks. Given a list of child ids
+ * and an inclusive date range, produces one deterministic row per (id, day)
+ * — numbers vary per id hash so totals and sorting stay non-trivial in tests.
+ */
+function synthesiseMetricRows(
+  ids: string[],
+  from: string,
+  to: string,
+): { id: string; metrics: SynthesisedMetrics }[] {
+  const rows: { id: string; metrics: SynthesisedMetrics }[] = [];
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  for (const id of ids) {
+    const seed = Math.abs(hashString(id)) % 17;
+    for (let d = new Date(start); d.getTime() <= end.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
+      const day = d.getUTCDate();
+      const impressions = BigInt((seed + 1) * 1000 + day * 37);
+      const clicks = BigInt((seed + 1) * 20 + day * 3);
+      const spendCents = BigInt((seed + 1) * 300 + day * 11);
+      const conversions = BigInt(Math.max(0, day - seed));
+      const reach = impressions / 3n;
+      const frequency = Number(impressions) / Math.max(1, Number(reach));
+      const cpmCents = impressions > 0n ? (spendCents * 1000n) / impressions : null;
+      const ctr = impressions > 0n ? Number(clicks) / Number(impressions) : null;
+      rows.push({
+        id,
+        metrics: {
+          date: d.toISOString().slice(0, 10),
+          impressions: impressions.toString(),
+          clicks: clicks.toString(),
+          spendCents: spendCents.toString(),
+          conversions: conversions.toString(),
+          reach: reach.toString(),
+          frequency: Number(frequency.toFixed(4)),
+          cpmCents: cpmCents !== null ? cpmCents.toString() : null,
+          ctr,
+        },
+      });
+    }
+  }
+  return rows;
 }

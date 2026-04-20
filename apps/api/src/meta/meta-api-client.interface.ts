@@ -75,6 +75,50 @@ export interface FetchInsightsInput {
   to: string; // YYYY-MM-DD inclusive
 }
 
+/** Adset-level insight row. Shape mirrors MetaInsightSnapshot; parent id is metaAdSetId. */
+export interface MetaAdSetInsightSnapshot {
+  metaAdSetId: string;
+  date: string;
+  impressions: string;
+  clicks: string;
+  spendCents: string;
+  conversions: string;
+  reach: string;
+  frequency: number;
+  cpmCents: string | null;
+  ctr: number | null;
+}
+
+export interface FetchAdSetInsightsInput {
+  accessToken: string;
+  metaAdAccountId: string;
+  metaAdSetIds: string[];
+  from: string;
+  to: string;
+}
+
+/** Ad-level insight row. Same shape as adset but keyed by metaAdId. */
+export interface MetaAdInsightSnapshot {
+  metaAdId: string;
+  date: string;
+  impressions: string;
+  clicks: string;
+  spendCents: string;
+  conversions: string;
+  reach: string;
+  frequency: number;
+  cpmCents: string | null;
+  ctr: number | null;
+}
+
+export interface FetchAdInsightsInput {
+  accessToken: string;
+  metaAdAccountId: string;
+  metaAdIds: string[];
+  from: string;
+  to: string;
+}
+
 export interface CreateCampaignInput {
   accessToken: string;
   metaAdAccountId: string;
@@ -251,6 +295,12 @@ export interface MetaApiClient {
 
   /** Daily insights rows for a set of campaigns. Cached into `meta_insight_snapshots`. */
   fetchInsights(input: FetchInsightsInput): Promise<MetaInsightSnapshot[]>;
+
+  /** Daily insights rows for a set of ad sets. Cached into `meta_adset_insight_snapshots`. */
+  fetchAdSetInsights(input: FetchAdSetInsightsInput): Promise<MetaAdSetInsightSnapshot[]>;
+
+  /** Daily insights rows for a set of ads. Cached into `meta_ad_insight_snapshots`. */
+  fetchAdInsights(input: FetchAdInsightsInput): Promise<MetaAdInsightSnapshot[]>;
 
   /** Create a campaign on Meta. Returns the freshly-created snapshot. */
   createCampaign(input: CreateCampaignInput): Promise<MetaCampaignSnapshot>;
