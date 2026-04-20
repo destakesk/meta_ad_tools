@@ -9,3 +9,4 @@ export * from './session';
 export * from './permission';
 export * from './audit';
 export * from './meta';
+export * from './campaign';
