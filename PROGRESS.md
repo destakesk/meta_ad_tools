@@ -1,5 +1,39 @@
 # metaflow — progress report
 
+## Module 05 — Campaign writes
+
+**Status:** ✅ Complete — 2026-04-20
+**Branch:** `main`
+**Module 06 handoff:** [`docs/module-06-handoff.md`](./docs/module-06-handoff.md)
+
+### Phases shipped (7/7)
+
+| Phase | Summary |
+|-------|---------|
+| 0 | Sanity: lint + 33 integration tests green; mock campaign store already in place from module 04. |
+| 1 | shared-types gains `CreateCampaignRequest` / `UpdateCampaignRequest`. Create enforces "exactly one of dailyBudget / lifetimeBudget" via zod refinement. Three new audit actions: `campaign.created / .updated / .deleted`. |
+| 2 | `MetaApiClient` extended with `createCampaign / updateCampaign / deleteCampaign`. Mock implementation switched to a stateful `Map<adAccountId, snapshots[]>` so writes flow into subsequent reads. Real binding calls Graph with `POST /{adAccountId}/campaigns` for create + `POST /{metaCampaignId}` for update + `DELETE /{metaCampaignId}` for delete, then re-fetches the snapshot. |
+| 3 | `CampaignsService.create / update / delete`. Shared `loadContext(workspaceId, adAccountId)` helper handles Meta connection lookup + token decryption + ad-account scoping. Create enforces the "exactly one budget" invariant server-side too. Each write emits `campaign.created / .updated / .deleted` audit events. |
+| 4 | `CampaignsController` gains POST (create), PATCH :id (update), DELETE :id (delete). Permissions: `campaign:write` for create + update, `campaign:delete` for delete — a workspace manager can edit but not destroy, consistent with the Module 02 role/permission seed. class-validator DTOs enforce shape at the HTTP boundary. |
+| 5 | Frontend CRUD: `CreateCampaignDialog` on the campaigns list (gated by `useCan('campaign:write')`, pulls ad-accounts from the active connection). Campaign detail page grows "Düzenle" (name + status) and "Sil" buttons, each gated by its permission. Delete navigates back to the list on success. |
+| 6 | Integration suite: `apps/api/test/integration/campaign-crud.spec.ts` — create → list round-trip, reject-no-budget validation, update mutates name + status, delete flips DELETED, cross-workspace id isolation. **Total integration suite: 38 tests across 13 files.** per-test-setup now resets the mock-provider store so writes don't leak across tests. |
+| 7 | PROGRESS.md ✅. `docs/module-06-handoff.md` written. |
+
+### Test counts
+
+- `@metaflow/api` integration: **38 tests** across 13 files (22 module 02 + 6 module 03 + 5 module 04 + 5 module 05)
+
+### Decisions locked
+
+1. **Budgets validated twice.** Zod schema forbids "both set" / "neither set" at the boundary; `CampaignsService.create` re-validates the same invariant. Belt-and-braces because the UI can be bypassed.
+2. **`campaign:delete` is a distinct permission.** Write + delete are split so WS_MANAGER can edit but not destroy. The UI's `useCan('campaign:delete')` gates the delete button; the server's `PermissionGuard` enforces it.
+3. **Create flow respects PAUSED default.** The Create dialog defaults status to `PAUSED` so a misclicked launch doesn't accidentally spend money. Users must consciously flip to ACTIVE.
+4. **Real-provider create does a follow-up fetch.** Graph's `POST /campaigns` returns only the new id; we follow with a GET for the full snapshot so the caller always gets a complete row. Matches the upsert-on-sync pattern from Module 04.
+5. **Mock store resets per-test.** Added `__resetMockCampaignStore` + `afterEach` hook. Writes in one test can no longer leak into the next.
+6. **Update schema allows null to clear fields.** `endTime: null` clears the field; `endTime` omitted leaves it alone. Same for budgets — matches Meta's own "pass empty string to clear" pattern.
+
+---
+
 ## Module 04 — Campaigns + Insights
 
 **Status:** ✅ Complete — 2026-04-20
