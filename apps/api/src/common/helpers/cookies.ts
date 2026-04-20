@@ -20,7 +20,7 @@ export function setRefreshCookie(
     secure: opts.secure,
     sameSite: 'lax',
     domain: opts.domain,
-    path: '/api/auth',
+    path: '/',
     maxAge: ttlSeconds * 1000,
   });
 }
@@ -31,7 +31,7 @@ export function clearRefreshCookie(res: Response, opts: CookieOptions): void {
     secure: opts.secure,
     sameSite: 'lax',
     domain: opts.domain,
-    path: '/api/auth',
+    path: '/',
     maxAge: 0,
   });
 }

@@ -43,7 +43,10 @@ export function middleware(request: NextRequest): NextResponse {
     "form-action 'self'",
     "base-uri 'self'",
     "object-src 'none'",
-    'upgrade-insecure-requests',
+    // upgrade-insecure-requests is only safe outside dev — locally it
+    // forces the browser to rewrite http://localhost links to https,
+    // which then fails because there's no TLS listener on 3000.
+    ...(isDev ? [] : ['upgrade-insecure-requests']),
   ].join('; ');
 
   // Auth gate — cheap cookie-presence check only.

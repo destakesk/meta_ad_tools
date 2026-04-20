@@ -37,8 +37,20 @@ export class WorkspaceAccessGuard implements CanActivate {
       (req.params as Record<string, string | undefined>)['slug'];
     if (!slug) throw new NotFoundException('workspace_slug_missing');
 
+    // Slug is unique per-organization, not globally. Without scoping the
+    // lookup to organizations the caller belongs to, `findFirst` would
+    // happily return some other tenant's workspace and the membership check
+    // would then deny access — the user gets a confusing 403 for a
+    // workspace they should never have seen.
+    const orgIds = (
+      await this.prisma.organizationMembership.findMany({
+        where: { userId: req.user.userId },
+        select: { organizationId: true },
+      })
+    ).map((m) => m.organizationId);
+
     const workspace = await this.prisma.workspace.findFirst({
-      where: { slug, deletedAt: null },
+      where: { slug, deletedAt: null, organizationId: { in: orgIds } },
     });
     if (!workspace) throw new NotFoundException('workspace_not_found');
 
