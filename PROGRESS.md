@@ -1,5 +1,38 @@
 # metaflow — progress report
 
+## Module 06 — AdSets
+
+**Status:** ✅ Complete — 2026-04-20
+**Branch:** `main`
+**Module 07 handoff:** [`docs/module-07-handoff.md`](./docs/module-07-handoff.md)
+
+### Phases shipped (7/7)
+
+| Phase | Summary |
+|-------|---------|
+| 0 | Sanity: 38 integration tests green on main; mock campaign store reset hook already wired. |
+| 1 | Prisma `AdSet` model + `AdSetStatus` enum + migration `20260420115701_adsets_module_06`. Budget columns BigInt minor units; targeting stored as opaque Json. `(campaignId, metaAdSetId)` unique; cascading delete from Campaign. |
+| 2 | shared-types gains `AdSet`, `AdSetListResponse`, `CreateAdSetRequest` (exactly-one-budget refinement mirrors CampaignCRUD), `UpdateAdSetRequest`, `AdSetSyncResponse`. Four new audit actions: `adset.synced / .created / .updated / .deleted`. |
+| 3 | `MetaApiClient` extended with `fetchAdSets / createAdSet / updateAdSet / deleteAdSet`. Mock uses a second stateful `Map<metaCampaignId, MetaAdSetSnapshot[]>`; per-test reset clears both campaign + adset stores. Real binding calls Graph `/{campaignId}/adsets` for read, `POST /act_<accountId>/adsets` for create (with a GET on the campaign to discover `account_id`), `POST /{adSetId}` for update, `DELETE /{adSetId}` for delete. |
+| 4 | `AdSetsService` (sync / list / get / create / update / delete) + two controllers. Campaign-scoped `CampaignAdSetsController` at `/workspaces/:slug/campaigns/:campaignId/adsets` for list+sync+create. Workspace-scoped `AdSetsController` at `/workspaces/:slug/adsets/:id` for detail+update+delete. `adset:write` gates write; `campaign:delete` gates delete until `adset:delete` ships in Module 07. |
+| 5 | Frontend: `AdSetsPanel` rendered inline on the campaign detail page. Sync + create dialog (RHF, optimization goal + billing event dropdowns, major-to-minor budget conversion) + per-row delete button. useCan-gated. |
+| 6 | Integration tests: `apps/api/test/integration/adsets.spec.ts` — sync fixture returns 2 ad sets, full CRUD round-trip, no-budget rejection, cross-workspace isolation. **Total integration suite: 42 tests across 14 files.** |
+| 7 | PROGRESS.md ✅. `docs/module-07-handoff.md` written. |
+
+### Test counts
+
+- `@metaflow/api` integration: **42 tests** across 14 files (22 module 02 + 6 module 03 + 5 module 04 + 5 module 05 + 4 module 06)
+
+### Decisions locked
+
+1. **Two controllers per level.** Campaign-scoped list/sync/create at `/campaigns/:id/adsets`; detail/update/delete at `/adsets/:id`. Keeps URLs predictable without forcing callers to re-derive the campaign id.
+2. **Re-use `campaign:delete` for adset delete.** Module 02 seed lacks `adset:delete / ad:delete / creative:delete`; Module 07 should add them and re-gate. For now MANAGER can create+edit but not destroy, consistent with the campaign split.
+3. **Targeting as opaque JSON.** Meta's targeting shape is deep + evolves. `Json?` avoids schema churn.
+4. **Mock ad sets are two-per-campaign.** ACTIVE/PAUSED + daily/lifetime budget mirrors the campaign fixture pattern.
+5. **Ad set creation fetches the ad account first.** Graph's real API requires `POST /act_<adAccountId>/adsets`. The real binding does a one-off GET on the campaign to discover `account_id`; the mock doesn't need it. Service surface stays clean — `createAdSet(input)` takes `metaCampaignId` only.
+
+---
+
 ## Module 05 — Campaign writes
 
 **Status:** ✅ Complete — 2026-04-20
