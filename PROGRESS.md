@@ -1,5 +1,41 @@
 # metaflow — progress report
 
+## Module 03 — Meta Ads Connection
+
+**Status:** ✅ Complete — 2026-04-20
+**Branch:** `main`
+**Module 04 handoff:** [`docs/module-04-handoff.md`](./docs/module-04-handoff.md)
+
+### Phases shipped (8/8)
+
+| Phase | Commit | Summary |
+|-------|--------|---------|
+| 0 | — | sanity: lint/type-check/test green; pg + redis services up; admin user from module 02 testing present |
+| 1 | `f1995e4` | Prisma `MetaConnection` + `MetaAdAccount` models, `MetaConnectionStatus` enum, migration `20260420011928_meta_connection_module_03`. Tokens stored as AES-256-GCM ciphertext (`v1:` prefix); workspaceId is the AAD so a leaked row cannot be replayed against another tenant. |
+| 2 | `534c563` | `@metaflow/shared-types`: meta connection schemas (status, response shapes, oauth init / callback) + 7 new audit actions covering oauth lifecycle + ad-accounts sync. |
+| 3 | (in `500cf82`) | `MetaApiClient` interface + `MockMetaApiClient` (deterministic stub for dev/CI; authorize URL redirects right back at the callback) + `RealMetaApiClient` (graph.facebook.com binding, activated by `META_OAUTH_MODE=real`). |
+| 4 | (in `500cf82`) | `MetaConnectionsService` with connect/get/rotate/disconnect + ad-accounts sync. Encrypted storage via `CryptoService` with workspace-scoped AAD; audit events on every mutation. |
+| 5 | (in `500cf82`) | `MetaController` (workspace-scoped: GET, init, rotate, disconnect, ad-accounts sync/list) + `MetaCallbackController` (workspace-less callback that resolves workspace from redis state). OAuth state lives in redis with TTL; permission keys are the existing `bisu:connect / bisu:rotate / bisu:disconnect` from Module 02 seed. |
+| 6 | `6aa1a55` | Web UI: `/w/[slug]/settings/meta` connection card + ad-accounts table; `/meta/callback` page that POSTs code+state to API and routes user back. New workspace settings sidebar (Genel / Meta bağlantısı). `useCan` gates each button. |
+| 7 | (in `500cf82`) | 6 integration tests against the mock provider in `apps/api/test/integration/meta-connection.spec.ts`: full lifecycle, expired-state rejection, rotate, disconnect, ad-account sync, cross-workspace isolation. Total integration suite: 28 tests. |
+| 8 | (this commit) | PROGRESS.md ✅; `docs/module-04-handoff.md` (campaigns + insights); CI integration job already covers the meta tests since they live alongside module 02's. |
+
+### Test counts
+
+- `@metaflow/api` integration: **28 tests** green via `pnpm --filter @metaflow/api test:integration` (22 from module 02 + 6 from module 03)
+- Unit + e2e counts unchanged from module 02
+
+### Decisions locked
+
+1. **Mock-first OAuth.** `META_OAUTH_MODE=mock` is the default. The mock authorize URL redirects straight back at our own callback with a fake code, so the entire pipeline (state → exchange → connect → ad-accounts) runs against the real API surface without touching graph.facebook.com. `META_OAUTH_MODE=real` flips a single DI factory to the binding once the Meta business app is approved.
+2. **AAD = workspaceId.** Every CryptoService call in this module uses `meta_connection:<workspaceId>` as AAD. A row exfiltrated from one tenant cannot be replayed against another — GCM auth fails on mismatched AAD.
+3. **OAuth state in Redis, not a cookie.** State is a 32-byte random hex stored under `meta_oauth_state:<state>` with a configurable TTL (`META_OAUTH_STATE_TTL_SECONDS`, default 600). The callback verifies it before any code exchange and deletes it on first use.
+4. **Workspace-less callback.** `redirect_uri` is fixed at the Meta app level and cannot carry the workspace slug; the callback controller resolves the workspace from the redis state instead. Returns `workspaceSlug` so the UI can navigate the user back to the right settings page.
+5. **GET /meta only surfaces ACTIVE.** REVOKED + EXPIRED connections stay in the table for audit but are filtered from the workspace status endpoint. Disconnect is reversible only by re-running the OAuth flow.
+6. **Permissions reused from module 02 seed.** `bisu:connect`, `bisu:rotate`, `bisu:disconnect` were already seeded in WS_ADMIN + ORG_ADMIN + ORG_OWNER; no new role mappings needed. `adaccount:read` (already in WS_VIEWER+) gates the ad-accounts list.
+
+---
+
 ## Module 02 — Auth & User Management
 
 **Status:** ✅ Complete — 2026-04-20
