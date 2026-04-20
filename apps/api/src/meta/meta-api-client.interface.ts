@@ -75,6 +75,34 @@ export interface FetchInsightsInput {
   to: string; // YYYY-MM-DD inclusive
 }
 
+export interface CreateCampaignInput {
+  accessToken: string;
+  metaAdAccountId: string;
+  name: string;
+  objective: string;
+  status: 'ACTIVE' | 'PAUSED';
+  /** Minor units, BigInt-safe string. Exactly one must be provided. */
+  dailyBudgetCents?: string;
+  lifetimeBudgetCents?: string;
+  startTime?: string;
+  endTime?: string;
+}
+
+export interface UpdateCampaignInput {
+  accessToken: string;
+  metaCampaignId: string;
+  name?: string;
+  status?: 'ACTIVE' | 'PAUSED';
+  dailyBudgetCents?: string | null;
+  lifetimeBudgetCents?: string | null;
+  endTime?: string | null;
+}
+
+export interface DeleteCampaignInput {
+  accessToken: string;
+  metaCampaignId: string;
+}
+
 export interface AuthorizeUrlInput {
   state: string;
   redirectUri: string;
@@ -107,6 +135,15 @@ export interface MetaApiClient {
 
   /** Daily insights rows for a set of campaigns. Cached into `meta_insight_snapshots`. */
   fetchInsights(input: FetchInsightsInput): Promise<MetaInsightSnapshot[]>;
+
+  /** Create a campaign on Meta. Returns the freshly-created snapshot. */
+  createCampaign(input: CreateCampaignInput): Promise<MetaCampaignSnapshot>;
+
+  /** Update an existing campaign. Returns the latest snapshot. */
+  updateCampaign(input: UpdateCampaignInput): Promise<MetaCampaignSnapshot>;
+
+  /** Delete (flip status to DELETED on Meta's side). */
+  deleteCampaign(input: DeleteCampaignInput): Promise<void>;
 
   /**
    * Best-effort token revocation on Meta's side. The local row is always

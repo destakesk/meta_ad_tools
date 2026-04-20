@@ -1,15 +1,28 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { IsISO8601, Matches } from 'class-validator';
+import {
+  IsIn,
+  IsISO8601,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  Min,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 
 import { CurrentUser, type RequestUser } from '../auth/decorators/current-user.decorator.js';
 import { CurrentWorkspace } from '../auth/decorators/current-workspace.decorator.js';
@@ -33,6 +46,41 @@ class InsightQueryDto {
   @IsISO8601() to!: string;
 }
 
+class CreateCampaignDto {
+  @IsString() @MinLength(1) adAccountId!: string;
+  @IsString() @MinLength(1) @MaxLength(200) name!: string;
+  @IsString() @MinLength(1) @MaxLength(100) objective!: string;
+  @IsIn(['ACTIVE', 'PAUSED']) status!: 'ACTIVE' | 'PAUSED';
+
+  @IsOptional() @IsInt() @Min(0) dailyBudgetCents?: number;
+  @IsOptional() @IsInt() @Min(0) lifetimeBudgetCents?: number;
+
+  @IsOptional() @IsISO8601() startTime?: string;
+  @IsOptional() @IsISO8601() endTime?: string;
+}
+
+class UpdateCampaignDto {
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(200) name?: string;
+  @IsOptional() @IsIn(['ACTIVE', 'PAUSED']) status?: 'ACTIVE' | 'PAUSED';
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(0)
+  dailyBudgetCents?: number | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsInt()
+  @Min(0)
+  lifetimeBudgetCents?: number | null;
+
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsISO8601()
+  endTime?: string | null;
+}
+
 @Controller('workspaces/:slug/campaigns')
 @UseGuards(
   JwtAuthGuard,
@@ -52,6 +100,72 @@ export class CampaignsController {
   async list(@CurrentWorkspace() ws: { workspace: { id: string } }) {
     const campaigns = await this.campaigns.listForWorkspace(ws.workspace.id);
     return { campaigns };
+  }
+
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @RequirePermission('campaign:write')
+  async create(
+    @CurrentUser() user: RequestUser,
+    @CurrentWorkspace() ws: { workspace: { id: string } },
+    @Body() dto: CreateCampaignDto,
+  ) {
+    const campaign = await this.campaigns.create(ws.workspace.id, user.userId, {
+      adAccountId: dto.adAccountId,
+      name: dto.name,
+      objective: dto.objective,
+      status: dto.status,
+      ...(dto.dailyBudgetCents !== undefined
+        ? { dailyBudgetCents: dto.dailyBudgetCents.toString() }
+        : {}),
+      ...(dto.lifetimeBudgetCents !== undefined
+        ? { lifetimeBudgetCents: dto.lifetimeBudgetCents.toString() }
+        : {}),
+      ...(dto.startTime !== undefined ? { startTime: dto.startTime } : {}),
+      ...(dto.endTime !== undefined ? { endTime: dto.endTime } : {}),
+    });
+    return { campaign };
+  }
+
+  @Patch(':campaignId')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission('campaign:write')
+  async update(
+    @CurrentUser() user: RequestUser,
+    @CurrentWorkspace() ws: { workspace: { id: string } },
+    @Param('campaignId') campaignId: string,
+    @Body() dto: UpdateCampaignDto,
+  ) {
+    const campaign = await this.campaigns.update(ws.workspace.id, user.userId, campaignId, {
+      ...(dto.name !== undefined ? { name: dto.name } : {}),
+      ...(dto.status !== undefined ? { status: dto.status } : {}),
+      ...(dto.dailyBudgetCents !== undefined
+        ? {
+            dailyBudgetCents:
+              dto.dailyBudgetCents === null ? null : dto.dailyBudgetCents.toString(),
+          }
+        : {}),
+      ...(dto.lifetimeBudgetCents !== undefined
+        ? {
+            lifetimeBudgetCents:
+              dto.lifetimeBudgetCents === null ? null : dto.lifetimeBudgetCents.toString(),
+          }
+        : {}),
+      ...(dto.endTime !== undefined ? { endTime: dto.endTime } : {}),
+    });
+    return { campaign };
+  }
+
+  @Delete(':campaignId')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission('campaign:delete')
+  async delete(
+    @CurrentUser() user: RequestUser,
+    @CurrentWorkspace() ws: { workspace: { id: string } },
+    @Param('campaignId') campaignId: string,
+  ) {
+    await this.campaigns.delete(ws.workspace.id, user.userId, campaignId);
+    return { ok: true };
   }
 
   @Post('sync')

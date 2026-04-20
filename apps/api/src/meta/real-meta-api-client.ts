@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 
 import type {
   AuthorizeUrlInput,
+  CreateCampaignInput,
+  DeleteCampaignInput,
   ExchangeCodeInput,
   FetchCampaignsInput,
   FetchInsightsInput,
@@ -13,6 +15,7 @@ import type {
   MetaInsightSnapshot,
   MetaTokenSet,
   MetaUserProfile,
+  UpdateCampaignInput,
 } from './meta-api-client.interface.js';
 import type { AppConfig } from '../config/configuration.js';
 
@@ -228,6 +231,92 @@ export class RealMetaApiClient implements MetaApiClient {
       cpmCents: row.cpm !== undefined ? toMinorUnits(row.cpm) : null,
       ctr: row.ctr !== undefined ? Number(row.ctr) : null,
     }));
+  }
+
+  async createCampaign(input: CreateCampaignInput): Promise<MetaCampaignSnapshot> {
+    const body = new URLSearchParams({
+      name: input.name,
+      objective: input.objective,
+      status: input.status,
+      access_token: input.accessToken,
+    });
+    if (input.dailyBudgetCents !== undefined) body.set('daily_budget', input.dailyBudgetCents);
+    if (input.lifetimeBudgetCents !== undefined)
+      body.set('lifetime_budget', input.lifetimeBudgetCents);
+    if (input.startTime !== undefined) body.set('start_time', input.startTime);
+    if (input.endTime !== undefined) body.set('stop_time', input.endTime);
+    body.set('special_ad_categories', '[]');
+
+    const res = await fetch(`${GRAPH_BASE}/${input.metaAdAccountId}/campaigns`, {
+      method: 'POST',
+      body,
+    });
+    if (!res.ok) throw new BadGatewayException('meta_campaign_create_failed');
+    const { id } = (await res.json()) as { id: string };
+    // Graph's create response only returns the id. Fetch the freshly
+    // persisted row so the caller gets a full snapshot to cache.
+    const detail = await this.fetchCampaignById(input.accessToken, id);
+    return detail;
+  }
+
+  async updateCampaign(input: UpdateCampaignInput): Promise<MetaCampaignSnapshot> {
+    const body = new URLSearchParams({ access_token: input.accessToken });
+    if (input.name !== undefined) body.set('name', input.name);
+    if (input.status !== undefined) body.set('status', input.status);
+    if (input.dailyBudgetCents !== undefined) {
+      body.set('daily_budget', input.dailyBudgetCents ?? '');
+    }
+    if (input.lifetimeBudgetCents !== undefined) {
+      body.set('lifetime_budget', input.lifetimeBudgetCents ?? '');
+    }
+    if (input.endTime !== undefined) body.set('stop_time', input.endTime ?? '');
+
+    const res = await fetch(`${GRAPH_BASE}/${input.metaCampaignId}`, { method: 'POST', body });
+    if (!res.ok) throw new BadGatewayException('meta_campaign_update_failed');
+    return this.fetchCampaignById(input.accessToken, input.metaCampaignId);
+  }
+
+  async deleteCampaign(input: DeleteCampaignInput): Promise<void> {
+    const url = new URL(`${GRAPH_BASE}/${input.metaCampaignId}`);
+    url.searchParams.set('access_token', input.accessToken);
+    const res = await fetch(url, { method: 'DELETE' });
+    if (!res.ok) throw new BadGatewayException('meta_campaign_delete_failed');
+  }
+
+  private async fetchCampaignById(
+    accessToken: string,
+    metaCampaignId: string,
+  ): Promise<MetaCampaignSnapshot> {
+    const url = new URL(`${GRAPH_BASE}/${metaCampaignId}`);
+    url.searchParams.set(
+      'fields',
+      'id,name,objective,status,daily_budget,lifetime_budget,currency,start_time,stop_time',
+    );
+    url.searchParams.set('access_token', accessToken);
+    const res = await fetch(url);
+    if (!res.ok) throw new BadGatewayException('meta_campaign_fetch_failed');
+    const c = (await res.json()) as {
+      id: string;
+      name: string;
+      objective?: string;
+      status?: string;
+      daily_budget?: string;
+      lifetime_budget?: string;
+      currency?: string;
+      start_time?: string;
+      stop_time?: string;
+    };
+    return {
+      metaCampaignId: c.id,
+      name: c.name,
+      objective: c.objective ?? null,
+      status: normaliseCampaignStatus(c.status),
+      dailyBudgetCents: c.daily_budget ?? null,
+      lifetimeBudgetCents: c.lifetime_budget ?? null,
+      currency: c.currency ?? null,
+      startTime: c.start_time ?? null,
+      endTime: c.stop_time ?? null,
+    };
   }
 
   async revoke(accessToken: string): Promise<void> {

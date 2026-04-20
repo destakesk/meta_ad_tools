@@ -4,6 +4,8 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import type {
   AuthorizeUrlInput,
+  CreateCampaignInput,
+  DeleteCampaignInput,
   ExchangeCodeInput,
   FetchCampaignsInput,
   FetchInsightsInput,
@@ -13,21 +15,68 @@ import type {
   MetaInsightSnapshot,
   MetaTokenSet,
   MetaUserProfile,
+  UpdateCampaignInput,
 } from './meta-api-client.interface.js';
 
 /**
- * Deterministic-enough Meta API stub for dev / CI. The authorize URL points
- * back at our own /meta/connect/callback, the "code" we accept is anything
- * non-empty, and the tokens we hand out are random base64. Profile and
- * ad-account fixtures are stable across calls so UI snapshots don't drift.
+ * In-memory per-ad-account campaign store for the mock provider. Persists
+ * for the lifetime of the process so `createCampaign → fetchCampaigns`
+ * round-trips reflect writes. Each ad account self-seeds a two-campaign
+ * fixture on first access so reads work even without prior writes.
+ */
+const mockCampaignStore = new Map<string, MetaCampaignSnapshot[]>();
+
+function getOrInitStore(metaAdAccountId: string): MetaCampaignSnapshot[] {
+  let list = mockCampaignStore.get(metaAdAccountId);
+  if (!list) {
+    const shortId = metaAdAccountId.replace('act_', '').slice(-4);
+    const currency = metaAdAccountId.endsWith('0001') ? 'TRY' : 'EUR';
+    list = [
+      {
+        metaCampaignId: `campaign_${shortId}_001`,
+        name: `Always-On Prospecting ${shortId}`,
+        objective: 'OUTCOME_SALES',
+        status: 'ACTIVE',
+        dailyBudgetCents: '5000',
+        lifetimeBudgetCents: null,
+        currency,
+        startTime: '2026-04-01T00:00:00.000Z',
+        endTime: null,
+      },
+      {
+        metaCampaignId: `campaign_${shortId}_002`,
+        name: `Q2 Launch ${shortId}`,
+        objective: 'OUTCOME_AWARENESS',
+        status: 'PAUSED',
+        dailyBudgetCents: null,
+        lifetimeBudgetCents: '2500000',
+        currency,
+        startTime: '2026-04-10T00:00:00.000Z',
+        endTime: '2026-05-10T00:00:00.000Z',
+      },
+    ];
+    mockCampaignStore.set(metaAdAccountId, list);
+  }
+  return list;
+}
+
+/** Integration-suite helper — clears per-process state between specs. */
+export function __resetMockCampaignStore(): void {
+  mockCampaignStore.clear();
+}
+
+/**
+ * Deterministic-enough Meta API stub for dev / CI. Authorize URL points
+ * back at our own callback, "code" accepts anything non-empty, tokens are
+ * random. Profile + ad-account fixtures are stable across calls so UI
+ * snapshots don't drift. Campaigns live in a stateful map so CRUD works
+ * end-to-end.
  */
 @Injectable()
 export class MockMetaApiClient implements MetaApiClient {
   private readonly logger = new Logger(MockMetaApiClient.name);
 
   buildAuthorizeUrl(input: AuthorizeUrlInput): string {
-    // Mock provider redirects right back to our callback with a fake code,
-    // simulating the user clicking "Allow" on facebook.com.
     const url = new URL(input.redirectUri);
     url.searchParams.set('code', `mock-code-${randomUUID()}`);
     url.searchParams.set('state', input.state);
@@ -78,37 +127,56 @@ export class MockMetaApiClient implements MetaApiClient {
     ]);
   }
 
-  /**
-   * Two-per-account mock campaign fixture. Status / objective / budget
-   * chosen to exercise both the ACTIVE + PAUSED code paths + both daily
-   * and lifetime budget columns in a single sync.
-   */
   fetchCampaigns(input: FetchCampaignsInput): Promise<MetaCampaignSnapshot[]> {
-    const shortId = input.metaAdAccountId.replace('act_', '').slice(-4);
-    return Promise.resolve([
-      {
-        metaCampaignId: `campaign_${shortId}_001`,
-        name: `Always-On Prospecting ${shortId}`,
-        objective: 'OUTCOME_SALES',
-        status: 'ACTIVE',
-        dailyBudgetCents: '5000',
-        lifetimeBudgetCents: null,
-        currency: input.metaAdAccountId.endsWith('0001') ? 'TRY' : 'EUR',
-        startTime: '2026-04-01T00:00:00.000Z',
-        endTime: null,
-      },
-      {
-        metaCampaignId: `campaign_${shortId}_002`,
-        name: `Q2 Launch ${shortId}`,
-        objective: 'OUTCOME_AWARENESS',
-        status: 'PAUSED',
-        dailyBudgetCents: null,
-        lifetimeBudgetCents: '2500000',
-        currency: input.metaAdAccountId.endsWith('0001') ? 'TRY' : 'EUR',
-        startTime: '2026-04-10T00:00:00.000Z',
-        endTime: '2026-05-10T00:00:00.000Z',
-      },
-    ]);
+    const list = getOrInitStore(input.metaAdAccountId);
+    return Promise.resolve(list.filter((c) => c.status !== 'DELETED'));
+  }
+
+  createCampaign(input: CreateCampaignInput): Promise<MetaCampaignSnapshot> {
+    const list = getOrInitStore(input.metaAdAccountId);
+    const currency = input.metaAdAccountId.endsWith('0001') ? 'TRY' : 'EUR';
+    const snapshot: MetaCampaignSnapshot = {
+      metaCampaignId: `campaign_${Date.now().toString()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: input.name,
+      objective: input.objective,
+      status: input.status,
+      dailyBudgetCents: input.dailyBudgetCents ?? null,
+      lifetimeBudgetCents: input.lifetimeBudgetCents ?? null,
+      currency,
+      startTime: input.startTime ?? null,
+      endTime: input.endTime ?? null,
+    };
+    list.push(snapshot);
+    return Promise.resolve(snapshot);
+  }
+
+  updateCampaign(input: UpdateCampaignInput): Promise<MetaCampaignSnapshot> {
+    for (const [, list] of mockCampaignStore) {
+      const existing = list.find((c) => c.metaCampaignId === input.metaCampaignId);
+      if (existing) {
+        if (input.name !== undefined) existing.name = input.name;
+        if (input.status !== undefined) existing.status = input.status;
+        if (input.dailyBudgetCents !== undefined)
+          existing.dailyBudgetCents = input.dailyBudgetCents;
+        if (input.lifetimeBudgetCents !== undefined) {
+          existing.lifetimeBudgetCents = input.lifetimeBudgetCents;
+        }
+        if (input.endTime !== undefined) existing.endTime = input.endTime;
+        return Promise.resolve(existing);
+      }
+    }
+    throw new Error(`mock: campaign ${input.metaCampaignId} not found`);
+  }
+
+  deleteCampaign(input: DeleteCampaignInput): Promise<void> {
+    for (const [, list] of mockCampaignStore) {
+      const existing = list.find((c) => c.metaCampaignId === input.metaCampaignId);
+      if (existing) {
+        existing.status = 'DELETED';
+        return Promise.resolve();
+      }
+    }
+    throw new Error(`mock: campaign ${input.metaCampaignId} not found`);
   }
 
   /**
