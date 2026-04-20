@@ -34,6 +34,10 @@ export const auditActionSchema = z.enum([
   'campaign.created',
   'campaign.updated',
   'campaign.deleted',
+  'adset.synced',
+  'adset.created',
+  'adset.updated',
+  'adset.deleted',
   'insights.fetched',
 ]);
 export type AuditAction = z.infer<typeof auditActionSchema>;
