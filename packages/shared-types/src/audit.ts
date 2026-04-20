@@ -21,6 +21,8 @@ export const auditActionSchema = z.enum([
   'member.role.changed',
   'workspace.created',
   'workspace.deleted',
+  'workspace.renamed',
+  'organization.renamed',
 ]);
 export type AuditAction = z.infer<typeof auditActionSchema>;
 

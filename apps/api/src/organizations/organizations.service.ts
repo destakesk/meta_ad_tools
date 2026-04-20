@@ -1,3 +1,5 @@
+import { InvitationStatus, OrgRole, WorkspaceRole } from '@metaflow/database';
+import { RESERVED_SLUGS } from '@metaflow/shared-types';
 import {
   BadRequestException,
   ForbiddenException,
@@ -5,14 +7,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InvitationStatus, OrgRole, WorkspaceRole } from '@metaflow/database';
-import { RESERVED_SLUGS } from '@metaflow/shared-types';
 
 import { AuditService } from '../auth/services/audit.service.js';
-import { EmailService } from '../email/email.service.js';
 import { TokenService } from '../auth/services/token.service.js';
-import { PrismaService } from '../prisma/prisma.service.js';
+import { EmailService } from '../email/email.service.js';
 import { PermissionResolver } from '../permissions/permission-resolver.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 import type { AppConfig } from '../config/configuration.js';
 
@@ -153,6 +153,69 @@ export class OrganizationsService {
     if (owners.length === 1 && owners[0]?.userId === userIdBeingDemoted) {
       throw new ForbiddenException('last_admin_demotion_blocked');
     }
+  }
+
+  /**
+   * Returns every organization member with their org-role and any workspace
+   * memberships within that org. Used by the settings/members page to render
+   * the team table.
+   */
+  async listMembers(organizationId: string) {
+    const memberships = await this.prisma.organizationMembership.findMany({
+      where: { organizationId },
+      include: {
+        user: {
+          include: {
+            workspaceMemberships: {
+              include: { workspace: true },
+              where: { workspace: { organizationId, deletedAt: null } },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return {
+      members: memberships.map((m) => ({
+        userId: m.user.id,
+        email: m.user.email,
+        fullName: m.user.fullName,
+        avatarUrl: m.user.avatarUrl,
+        orgRole: m.role,
+        workspaces: m.user.workspaceMemberships.map((wm) => ({
+          workspaceId: wm.workspace.id,
+          slug: wm.workspace.slug,
+          name: wm.workspace.name,
+          role: wm.role,
+        })),
+        joinedAt: m.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  /**
+   * Renames the organization. Workspace slug is immutable in this module;
+   * only the display name is editable here. Audit logged for compliance.
+   */
+  async rename(userId: string, organizationId: string, name: string) {
+    const updated = await this.prisma.organization.update({
+      where: { id: organizationId },
+      data: { name },
+    });
+    await this.audit.record({
+      action: 'organization.renamed',
+      userId,
+      targetType: 'organization',
+      targetId: organizationId,
+      metadata: { meta: { name } },
+    });
+    return {
+      id: updated.id,
+      name: updated.name,
+      slug: updated.slug,
+      createdAt: updated.createdAt.toISOString(),
+      updatedAt: updated.updatedAt.toISOString(),
+    };
   }
 
   async previewInvitation(token: string) {

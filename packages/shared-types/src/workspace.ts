@@ -57,3 +57,8 @@ export const workspaceResponseSchema = z.object({
   userRole: z.enum(['ADMIN', 'MANAGER', 'VIEWER']),
 });
 export type WorkspaceResponse = z.infer<typeof workspaceResponseSchema>;
+
+export const updateWorkspaceRequestSchema = z.object({
+  name: z.string().min(2).max(50).optional(),
+});
+export type UpdateWorkspaceRequest = z.infer<typeof updateWorkspaceRequestSchema>;

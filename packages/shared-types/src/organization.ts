@@ -33,3 +33,31 @@ export const inviteMemberRequestSchema = z.object({
   workspaceId: z.string().optional(),
 });
 export type InviteMemberRequest = z.infer<typeof inviteMemberRequestSchema>;
+
+export const organizationMemberSchema = z.object({
+  userId: z.string(),
+  email: z.string().email(),
+  fullName: z.string(),
+  avatarUrl: z.string().nullable(),
+  orgRole: z.enum(['OWNER', 'ADMIN', 'MEMBER']),
+  workspaces: z.array(
+    z.object({
+      workspaceId: z.string(),
+      slug: z.string(),
+      name: z.string(),
+      role: z.enum(['ADMIN', 'MANAGER', 'VIEWER']),
+    }),
+  ),
+  joinedAt: z.string().datetime(),
+});
+export type OrganizationMember = z.infer<typeof organizationMemberSchema>;
+
+export const organizationMembersResponseSchema = z.object({
+  members: z.array(organizationMemberSchema),
+});
+export type OrganizationMembersResponse = z.infer<typeof organizationMembersResponseSchema>;
+
+export const updateOrganizationRequestSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+});
+export type UpdateOrganizationRequest = z.infer<typeof updateOrganizationRequestSchema>;
