@@ -1,8 +1,10 @@
 export * from './client';
 export type {
+  Ad,
   AdSet,
   AuditLog,
   Campaign,
+  Creative,
   HealthCheck,
   Invitation,
   MetaAdAccount,
@@ -20,7 +22,9 @@ export type {
 } from '../generated/client';
 export {
   AdSetStatus,
+  AdStatus,
   CampaignStatus,
+  CreativeKind,
   InvitationStatus,
   MetaConnectionStatus,
   OrgRole,
