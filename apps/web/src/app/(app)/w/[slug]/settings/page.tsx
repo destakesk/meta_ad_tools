@@ -57,20 +57,13 @@ export default function WorkspaceSettingsPage(): React.ReactElement {
     },
   });
 
-  if (ws.isPending)
-    return (
-      <div className="mx-auto max-w-2xl px-6 py-10">
-        <Skeleton className="h-48" />
-      </div>
-    );
+  if (ws.isPending) return <Skeleton className="h-48" />;
 
   if (ws.isError) {
     return (
-      <div className="mx-auto max-w-2xl px-6 py-10">
-        <Alert variant="destructive">
-          <AlertDescription>Workspace yüklenemedi.</AlertDescription>
-        </Alert>
-      </div>
+      <Alert variant="destructive">
+        <AlertDescription>Workspace yüklenemedi.</AlertDescription>
+      </Alert>
     );
   }
 
@@ -78,7 +71,7 @@ export default function WorkspaceSettingsPage(): React.ReactElement {
   const w = ws.data.workspace;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-6 py-10">
+    <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-bold">{w.name} ayarları</h1>
         <p className="text-sm text-[hsl(var(--muted-foreground))]">

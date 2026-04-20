@@ -15,6 +15,10 @@ const NAV = [
   { href: '/settings/members', label: 'Üyeler' },
 ];
 
+// Workspace-scoped nav items live in the workspace layout, not here. Module
+// 03 added Meta connection at /w/[slug]/settings/meta — surfaced from the
+// workspace home + topbar instead of the org-level settings sidebar.
+
 export default function SettingsLayout({ children }: { children: ReactNode }): React.ReactElement {
   const pathname = usePathname();
   return (
