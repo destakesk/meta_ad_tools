@@ -15,6 +15,7 @@ import { CryptoModule } from './crypto/crypto.module.js';
 import { EmailModule } from './email/email.module.js';
 import { HealthModule } from './health/health.module.js';
 import { InvitationsModule } from './invitations/invitations.module.js';
+import { MetaModule } from './meta/meta.module.js';
 import { OrganizationsModule } from './organizations/organizations.module.js';
 import { PermissionsModule } from './permissions/permissions.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -88,6 +89,7 @@ import type { AppConfig } from './config/configuration.js';
     OrganizationsModule,
     WorkspacesModule,
     InvitationsModule,
+    MetaModule,
     QueueModule,
   ],
   providers: [

@@ -56,6 +56,14 @@ export interface AppConfig {
     resetUrlBase: string;
     invitationUrlBase: string;
   };
+  meta: {
+    oauthMode: 'mock' | 'real';
+    appId: string;
+    appSecret: string;
+    redirectUri: string;
+    scopes: string[];
+    stateTtlSeconds: number;
+  };
 }
 
 function parseBool(value: string | undefined, fallback: boolean): boolean {
@@ -122,5 +130,18 @@ export const configuration = (): AppConfig => ({
     verifyUrlBase: process.env['EMAIL_VERIFY_URL_BASE'] ?? 'http://localhost:3000/verify-email',
     resetUrlBase: process.env['PASSWORD_RESET_URL_BASE'] ?? 'http://localhost:3000/reset-password',
     invitationUrlBase: process.env['INVITATION_URL_BASE'] ?? 'http://localhost:3000/invite/accept',
+  },
+  meta: {
+    oauthMode: process.env['META_OAUTH_MODE'] === 'real' ? 'real' : 'mock',
+    appId: process.env['META_APP_ID'] ?? '',
+    appSecret: process.env['META_APP_SECRET'] ?? '',
+    redirectUri:
+      process.env['META_REDIRECT_URI'] ??
+      `${process.env['APP_URL'] ?? 'http://localhost:3000'}/meta/callback`,
+    scopes: (process.env['META_SCOPES'] ?? 'ads_management,ads_read,business_management')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+    stateTtlSeconds: parseInt(process.env['META_OAUTH_STATE_TTL_SECONDS'] ?? '600', 10),
   },
 });

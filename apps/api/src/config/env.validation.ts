@@ -77,4 +77,12 @@ export const envValidationSchema = Joi.object({
   THROTTLE_LIMIT: Joi.number().default(100),
 
   CORS_ORIGINS: Joi.string().default('http://localhost:3000'),
+
+  // Meta Ads OAuth (Module 03)
+  META_OAUTH_MODE: Joi.string().valid('mock', 'real').default('mock'),
+  META_APP_ID: Joi.string().allow('').default(''),
+  META_APP_SECRET: Joi.string().allow('').default(''),
+  META_REDIRECT_URI: Joi.string().uri().optional(),
+  META_SCOPES: Joi.string().default('ads_management,ads_read,business_management'),
+  META_OAUTH_STATE_TTL_SECONDS: Joi.number().integer().min(60).max(3600).default(600),
 }).unknown(true);
