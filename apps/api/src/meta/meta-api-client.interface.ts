@@ -103,6 +103,56 @@ export interface DeleteCampaignInput {
   metaCampaignId: string;
 }
 
+export type MetaAdSetStatus = 'ACTIVE' | 'PAUSED' | 'DELETED' | 'ARCHIVED' | 'UNKNOWN';
+
+export interface MetaAdSetSnapshot {
+  metaAdSetId: string;
+  name: string;
+  status: MetaAdSetStatus;
+  optimizationGoal: string | null;
+  billingEvent: string | null;
+  dailyBudgetCents: string | null;
+  lifetimeBudgetCents: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  targeting: unknown;
+}
+
+export interface FetchAdSetsInput {
+  accessToken: string;
+  metaCampaignId: string;
+}
+
+export interface CreateAdSetInput {
+  accessToken: string;
+  metaCampaignId: string;
+  name: string;
+  status: 'ACTIVE' | 'PAUSED';
+  optimizationGoal: string;
+  billingEvent: string;
+  dailyBudgetCents?: string;
+  lifetimeBudgetCents?: string;
+  startTime?: string;
+  endTime?: string;
+  targeting?: unknown;
+}
+
+export interface UpdateAdSetInput {
+  accessToken: string;
+  metaAdSetId: string;
+  name?: string;
+  status?: 'ACTIVE' | 'PAUSED';
+  dailyBudgetCents?: string | null;
+  lifetimeBudgetCents?: string | null;
+  endTime?: string | null;
+  targeting?: unknown;
+}
+
+export interface DeleteAdSetInput {
+  accessToken: string;
+  metaAdSetId: string;
+}
+
 export interface AuthorizeUrlInput {
   state: string;
   redirectUri: string;
@@ -144,6 +194,18 @@ export interface MetaApiClient {
 
   /** Delete (flip status to DELETED on Meta's side). */
   deleteCampaign(input: DeleteCampaignInput): Promise<void>;
+
+  /** List ad sets under a campaign. Cached into `ad_sets`. */
+  fetchAdSets(input: FetchAdSetsInput): Promise<MetaAdSetSnapshot[]>;
+
+  /** Create an ad set under a campaign. Returns the fresh snapshot. */
+  createAdSet(input: CreateAdSetInput): Promise<MetaAdSetSnapshot>;
+
+  /** Update an existing ad set. Returns the latest snapshot. */
+  updateAdSet(input: UpdateAdSetInput): Promise<MetaAdSetSnapshot>;
+
+  /** Delete (flip status to DELETED on Meta's side). */
+  deleteAdSet(input: DeleteAdSetInput): Promise<void>;
 
   /**
    * Best-effort token revocation on Meta's side. The local row is always

@@ -3,18 +3,24 @@ import { ConfigService } from '@nestjs/config';
 
 import type {
   AuthorizeUrlInput,
+  CreateAdSetInput,
   CreateCampaignInput,
+  DeleteAdSetInput,
   DeleteCampaignInput,
   ExchangeCodeInput,
+  FetchAdSetsInput,
   FetchCampaignsInput,
   FetchInsightsInput,
   MetaAdAccountSnapshot,
+  MetaAdSetSnapshot,
+  MetaAdSetStatus,
   MetaApiClient,
   MetaCampaignSnapshot,
   MetaCampaignStatus,
   MetaInsightSnapshot,
   MetaTokenSet,
   MetaUserProfile,
+  UpdateAdSetInput,
   UpdateCampaignInput,
 } from './meta-api-client.interface.js';
 import type { AppConfig } from '../config/configuration.js';
@@ -319,6 +325,100 @@ export class RealMetaApiClient implements MetaApiClient {
     };
   }
 
+  async fetchAdSets(input: FetchAdSetsInput): Promise<MetaAdSetSnapshot[]> {
+    const url = new URL(`${GRAPH_BASE}/${input.metaCampaignId}/adsets`);
+    url.searchParams.set(
+      'fields',
+      [
+        'id',
+        'name',
+        'status',
+        'optimization_goal',
+        'billing_event',
+        'daily_budget',
+        'lifetime_budget',
+        'start_time',
+        'end_time',
+        'targeting',
+      ].join(','),
+    );
+    url.searchParams.set('limit', '250');
+    url.searchParams.set('access_token', input.accessToken);
+    const res = await fetch(url);
+    if (!res.ok) throw new BadGatewayException('meta_adsets_fetch_failed');
+    const body = (await res.json()) as { data: RawAdSet[] };
+    return body.data.map(toAdSetSnapshot);
+  }
+
+  async createAdSet(input: CreateAdSetInput): Promise<MetaAdSetSnapshot> {
+    // Ad sets are created under the ad account, not the campaign. We need the
+    // ad_account_id; the quickest way is to ask the campaign for it.
+    const campaignRes = await fetch(
+      `${GRAPH_BASE}/${input.metaCampaignId}?fields=account_id&access_token=${input.accessToken}`,
+    );
+    if (!campaignRes.ok) throw new BadGatewayException('meta_campaign_fetch_failed');
+    const { account_id } = (await campaignRes.json()) as { account_id: string };
+
+    const body = new URLSearchParams({
+      name: input.name,
+      status: input.status,
+      optimization_goal: input.optimizationGoal,
+      billing_event: input.billingEvent,
+      campaign_id: input.metaCampaignId,
+      access_token: input.accessToken,
+    });
+    if (input.dailyBudgetCents !== undefined) body.set('daily_budget', input.dailyBudgetCents);
+    if (input.lifetimeBudgetCents !== undefined)
+      body.set('lifetime_budget', input.lifetimeBudgetCents);
+    if (input.startTime !== undefined) body.set('start_time', input.startTime);
+    if (input.endTime !== undefined) body.set('end_time', input.endTime);
+    if (input.targeting !== undefined) body.set('targeting', JSON.stringify(input.targeting));
+
+    const res = await fetch(`${GRAPH_BASE}/act_${account_id}/adsets`, { method: 'POST', body });
+    if (!res.ok) throw new BadGatewayException('meta_adset_create_failed');
+    const { id } = (await res.json()) as { id: string };
+    return this.fetchAdSetById(input.accessToken, id);
+  }
+
+  async updateAdSet(input: UpdateAdSetInput): Promise<MetaAdSetSnapshot> {
+    const body = new URLSearchParams({ access_token: input.accessToken });
+    if (input.name !== undefined) body.set('name', input.name);
+    if (input.status !== undefined) body.set('status', input.status);
+    if (input.dailyBudgetCents !== undefined)
+      body.set('daily_budget', input.dailyBudgetCents ?? '');
+    if (input.lifetimeBudgetCents !== undefined) {
+      body.set('lifetime_budget', input.lifetimeBudgetCents ?? '');
+    }
+    if (input.endTime !== undefined) body.set('end_time', input.endTime ?? '');
+    if (input.targeting !== undefined) body.set('targeting', JSON.stringify(input.targeting));
+
+    const res = await fetch(`${GRAPH_BASE}/${input.metaAdSetId}`, { method: 'POST', body });
+    if (!res.ok) throw new BadGatewayException('meta_adset_update_failed');
+    return this.fetchAdSetById(input.accessToken, input.metaAdSetId);
+  }
+
+  async deleteAdSet(input: DeleteAdSetInput): Promise<void> {
+    const url = new URL(`${GRAPH_BASE}/${input.metaAdSetId}`);
+    url.searchParams.set('access_token', input.accessToken);
+    const res = await fetch(url, { method: 'DELETE' });
+    if (!res.ok) throw new BadGatewayException('meta_adset_delete_failed');
+  }
+
+  private async fetchAdSetById(
+    accessToken: string,
+    metaAdSetId: string,
+  ): Promise<MetaAdSetSnapshot> {
+    const url = new URL(`${GRAPH_BASE}/${metaAdSetId}`);
+    url.searchParams.set(
+      'fields',
+      'id,name,status,optimization_goal,billing_event,daily_budget,lifetime_budget,start_time,end_time,targeting',
+    );
+    url.searchParams.set('access_token', accessToken);
+    const res = await fetch(url);
+    if (!res.ok) throw new BadGatewayException('meta_adset_fetch_failed');
+    return toAdSetSnapshot((await res.json()) as RawAdSet);
+  }
+
   async revoke(accessToken: string): Promise<void> {
     const url = new URL(`${GRAPH_BASE}/me/permissions`);
     url.searchParams.set('access_token', accessToken);
@@ -326,6 +426,49 @@ export class RealMetaApiClient implements MetaApiClient {
     if (!res.ok) {
       this.logger.warn({ status: res.status }, 'meta revoke responded non-2xx');
     }
+  }
+}
+
+interface RawAdSet {
+  id: string;
+  name: string;
+  status?: string;
+  optimization_goal?: string;
+  billing_event?: string;
+  daily_budget?: string;
+  lifetime_budget?: string;
+  start_time?: string;
+  end_time?: string;
+  targeting?: unknown;
+}
+
+function toAdSetSnapshot(s: RawAdSet): MetaAdSetSnapshot {
+  return {
+    metaAdSetId: s.id,
+    name: s.name,
+    status: normaliseAdSetStatus(s.status),
+    optimizationGoal: s.optimization_goal ?? null,
+    billingEvent: s.billing_event ?? null,
+    dailyBudgetCents: s.daily_budget ?? null,
+    lifetimeBudgetCents: s.lifetime_budget ?? null,
+    startTime: s.start_time ?? null,
+    endTime: s.end_time ?? null,
+    targeting: s.targeting ?? null,
+  };
+}
+
+function normaliseAdSetStatus(raw: string | undefined): MetaAdSetStatus {
+  switch ((raw ?? '').toUpperCase()) {
+    case 'ACTIVE':
+      return 'ACTIVE';
+    case 'PAUSED':
+      return 'PAUSED';
+    case 'DELETED':
+      return 'DELETED';
+    case 'ARCHIVED':
+      return 'ARCHIVED';
+    default:
+      return 'UNKNOWN';
   }
 }
 

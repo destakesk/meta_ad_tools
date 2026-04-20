@@ -4,17 +4,22 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import type {
   AuthorizeUrlInput,
+  CreateAdSetInput,
   CreateCampaignInput,
+  DeleteAdSetInput,
   DeleteCampaignInput,
   ExchangeCodeInput,
+  FetchAdSetsInput,
   FetchCampaignsInput,
   FetchInsightsInput,
   MetaAdAccountSnapshot,
+  MetaAdSetSnapshot,
   MetaApiClient,
   MetaCampaignSnapshot,
   MetaInsightSnapshot,
   MetaTokenSet,
   MetaUserProfile,
+  UpdateAdSetInput,
   UpdateCampaignInput,
 } from './meta-api-client.interface.js';
 
@@ -63,6 +68,49 @@ function getOrInitStore(metaAdAccountId: string): MetaCampaignSnapshot[] {
 /** Integration-suite helper — clears per-process state between specs. */
 export function __resetMockCampaignStore(): void {
   mockCampaignStore.clear();
+  mockAdSetStore.clear();
+}
+
+/**
+ * Per-campaign ad-set store. Seeded on first read so a freshly-created
+ * campaign with no manual writes still returns a usable list. Writes
+ * mutate in place, same pattern as the campaign store.
+ */
+const mockAdSetStore = new Map<string, MetaAdSetSnapshot[]>();
+
+function getOrInitAdSetStore(metaCampaignId: string): MetaAdSetSnapshot[] {
+  let list = mockAdSetStore.get(metaCampaignId);
+  if (!list) {
+    const suffix = metaCampaignId.slice(-6);
+    list = [
+      {
+        metaAdSetId: `adset_${suffix}_01`,
+        name: `Lookalike 1% — ${suffix}`,
+        status: 'ACTIVE',
+        optimizationGoal: 'LINK_CLICKS',
+        billingEvent: 'IMPRESSIONS',
+        dailyBudgetCents: '2500',
+        lifetimeBudgetCents: null,
+        startTime: '2026-04-01T00:00:00.000Z',
+        endTime: null,
+        targeting: { geo_locations: { countries: ['TR'] } },
+      },
+      {
+        metaAdSetId: `adset_${suffix}_02`,
+        name: `Retargeting 30d — ${suffix}`,
+        status: 'PAUSED',
+        optimizationGoal: 'OFFSITE_CONVERSIONS',
+        billingEvent: 'IMPRESSIONS',
+        dailyBudgetCents: null,
+        lifetimeBudgetCents: '1500000',
+        startTime: '2026-04-05T00:00:00.000Z',
+        endTime: '2026-05-05T00:00:00.000Z',
+        targeting: { custom_audiences: [{ id: '1234567890' }] },
+      },
+    ];
+    mockAdSetStore.set(metaCampaignId, list);
+  }
+  return list;
 }
 
 /**
@@ -215,6 +263,59 @@ export class MockMetaApiClient implements MetaApiClient {
       }
     }
     return Promise.resolve(rows);
+  }
+
+  fetchAdSets(input: FetchAdSetsInput): Promise<MetaAdSetSnapshot[]> {
+    const list = getOrInitAdSetStore(input.metaCampaignId);
+    return Promise.resolve(list.filter((s) => s.status !== 'DELETED'));
+  }
+
+  createAdSet(input: CreateAdSetInput): Promise<MetaAdSetSnapshot> {
+    const list = getOrInitAdSetStore(input.metaCampaignId);
+    const snapshot: MetaAdSetSnapshot = {
+      metaAdSetId: `adset_${Date.now().toString()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: input.name,
+      status: input.status,
+      optimizationGoal: input.optimizationGoal,
+      billingEvent: input.billingEvent,
+      dailyBudgetCents: input.dailyBudgetCents ?? null,
+      lifetimeBudgetCents: input.lifetimeBudgetCents ?? null,
+      startTime: input.startTime ?? null,
+      endTime: input.endTime ?? null,
+      targeting: input.targeting ?? null,
+    };
+    list.push(snapshot);
+    return Promise.resolve(snapshot);
+  }
+
+  updateAdSet(input: UpdateAdSetInput): Promise<MetaAdSetSnapshot> {
+    for (const [, list] of mockAdSetStore) {
+      const existing = list.find((s) => s.metaAdSetId === input.metaAdSetId);
+      if (existing) {
+        if (input.name !== undefined) existing.name = input.name;
+        if (input.status !== undefined) existing.status = input.status;
+        if (input.dailyBudgetCents !== undefined)
+          existing.dailyBudgetCents = input.dailyBudgetCents;
+        if (input.lifetimeBudgetCents !== undefined) {
+          existing.lifetimeBudgetCents = input.lifetimeBudgetCents;
+        }
+        if (input.endTime !== undefined) existing.endTime = input.endTime;
+        if (input.targeting !== undefined) existing.targeting = input.targeting;
+        return Promise.resolve(existing);
+      }
+    }
+    throw new Error(`mock: ad set ${input.metaAdSetId} not found`);
+  }
+
+  deleteAdSet(input: DeleteAdSetInput): Promise<void> {
+    for (const [, list] of mockAdSetStore) {
+      const existing = list.find((s) => s.metaAdSetId === input.metaAdSetId);
+      if (existing) {
+        existing.status = 'DELETED';
+        return Promise.resolve();
+      }
+    }
+    throw new Error(`mock: ad set ${input.metaAdSetId} not found`);
   }
 
   revoke(_accessToken: string): Promise<void> {

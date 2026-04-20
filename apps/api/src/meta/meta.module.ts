@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { AuthModule } from '../auth/auth.module.js';
 import { CryptoModule } from '../crypto/crypto.module.js';
 
+import { AdSetsController, CampaignAdSetsController } from './adsets.controller.js';
+import { AdSetsService } from './adsets.service.js';
 import { CampaignsController, InsightsController } from './campaigns.controller.js';
 import { CampaignsService } from './campaigns.service.js';
 import { InsightsService } from './insights.service.js';
@@ -18,11 +20,19 @@ import type { AppConfig } from '../config/configuration.js';
 
 @Module({
   imports: [AuthModule, CryptoModule],
-  controllers: [MetaController, MetaCallbackController, CampaignsController, InsightsController],
+  controllers: [
+    MetaController,
+    MetaCallbackController,
+    CampaignsController,
+    InsightsController,
+    CampaignAdSetsController,
+    AdSetsController,
+  ],
   providers: [
     MetaConnectionsService,
     CampaignsService,
     InsightsService,
+    AdSetsService,
     MockMetaApiClient,
     RealMetaApiClient,
     {
@@ -38,6 +48,6 @@ import type { AppConfig } from '../config/configuration.js';
       },
     },
   ],
-  exports: [MetaConnectionsService, CampaignsService, InsightsService],
+  exports: [MetaConnectionsService, CampaignsService, InsightsService, AdSetsService],
 })
 export class MetaModule {}
