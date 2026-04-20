@@ -82,3 +82,40 @@ export const insightSyncRequestSchema = z.object({
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 export type InsightSyncRequest = z.infer<typeof insightSyncRequestSchema>;
+
+/**
+ * Create / update request shapes. Budgets come in as either an integer
+ * number of minor units OR a BigInt-safe string — the refinement below
+ * forces one at a time so callers can't sneak both and let the API
+ * guess. Exactly-one validation is also enforced server-side in
+ * `CampaignsService`.
+ */
+const budgetInput = z.union([z.number().int().min(0), stringBigint]);
+
+export const createCampaignRequestSchema = z
+  .object({
+    adAccountId: z.string().min(1),
+    name: z.string().min(1).max(200),
+    objective: z.string().min(1).max(100),
+    status: z.enum(['ACTIVE', 'PAUSED']).default('PAUSED'),
+    dailyBudgetCents: budgetInput.optional(),
+    lifetimeBudgetCents: budgetInput.optional(),
+    startTime: z.string().datetime().optional(),
+    endTime: z.string().datetime().optional(),
+  })
+  .refine(
+    (v) =>
+      (v.dailyBudgetCents !== undefined && v.lifetimeBudgetCents === undefined) ||
+      (v.dailyBudgetCents === undefined && v.lifetimeBudgetCents !== undefined),
+    { message: 'Exactly one of dailyBudgetCents or lifetimeBudgetCents is required' },
+  );
+export type CreateCampaignRequest = z.infer<typeof createCampaignRequestSchema>;
+
+export const updateCampaignRequestSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  status: z.enum(['ACTIVE', 'PAUSED']).optional(),
+  dailyBudgetCents: budgetInput.nullable().optional(),
+  lifetimeBudgetCents: budgetInput.nullable().optional(),
+  endTime: z.string().datetime().nullable().optional(),
+});
+export type UpdateCampaignRequest = z.infer<typeof updateCampaignRequestSchema>;
