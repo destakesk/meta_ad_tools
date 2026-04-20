@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 
 import type { AuditAction, AuditMetadata } from '@metaflow/shared-types';
 import type { Queue } from 'bullmq';

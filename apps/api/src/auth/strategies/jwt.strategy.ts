@@ -36,8 +36,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: AccessTokenPayload): Promise<RequestUser> {
-    if (payload.type !== 'access') throw new UnauthorizedException('invalid_token_type');
-
     // Revocation check: logout / password change writes the jti to Redis.
     const blacklisted = await this.redis.client.exists(`access_blacklist:${payload.jti}`);
     if (blacklisted) throw new UnauthorizedException('token_revoked');

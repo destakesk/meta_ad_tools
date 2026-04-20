@@ -138,7 +138,9 @@ export class EmailProcessor extends WorkerHost {
       return;
     }
 
-    // Dev / CI fallback.
+    // Dev / CI fallback. mailDir is operator-controlled (env var or
+    // fixed cwd-relative tmp/mail/), not user input — fs warnings disabled.
+    /* eslint-disable security/detect-non-literal-fs-filename */
     await mkdir(this.mailDir, { recursive: true });
     const file = join(this.mailDir, `${Date.now().toString()}-${input.jobName}-${input.to}.json`);
     await writeFile(
@@ -158,6 +160,7 @@ export class EmailProcessor extends WorkerHost {
       ),
       'utf8',
     );
+    /* eslint-enable security/detect-non-literal-fs-filename */
     this.logger.warn({ file }, 'email dumped to tmp/mail (resend api key not set)');
   }
 }

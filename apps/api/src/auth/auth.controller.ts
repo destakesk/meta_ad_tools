@@ -121,9 +121,12 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Throttle({ default: { limit: 30, ttl: 60 * 1000 } })
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const cookies = (req as Request & { cookies?: Record<string, string> }).cookies;
-    const token = cookies?.[REFRESH_COOKIE];
-    if (!token) return { accessToken: null };
+    // cookie-parser ships `req.cookies` as `any`; coerce explicitly so the
+    // rest of this handler is strictly typed.
+    const cookies: Record<string, string | undefined> =
+      (req as { cookies?: Record<string, string | undefined> }).cookies ?? {};
+    const token = cookies[REFRESH_COOKIE];
+    if (token === undefined) return { accessToken: null };
     const result = await this.auth.refresh(token, {
       ip: extractIp(req),
       userAgent: req.headers['user-agent'],

@@ -10,7 +10,6 @@
  * before touching the DB — catches typos at seed-time, not at request-time.
  */
 import { PrismaClient } from '../generated/client';
-
 import { PERMISSIONS } from '../src/data/permissions';
 import { ROLE_NAMES, ROLE_PERMISSIONS } from '../src/data/role-permissions';
 

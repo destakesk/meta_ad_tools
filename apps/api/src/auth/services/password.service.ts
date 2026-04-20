@@ -79,8 +79,8 @@ export class PasswordService {
         ok: false,
         score: result.score,
         feedback:
-          result.feedback.warning ||
-          result.feedback.suggestions[0] ||
+          result.feedback.warning ??
+          result.feedback.suggestions[0] ??
           'Şifre çok zayıf, daha güçlü bir şifre seçin',
       };
     }

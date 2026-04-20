@@ -1,5 +1,5 @@
 import { OrgRole, WorkspaceRole } from '@metaflow/database';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { PermissionResolver } from './permission-resolver.service.js';
 
@@ -11,21 +11,21 @@ function makeResolver(state: {
 }): Resolver {
   const prisma = {
     workspace: {
-      findUnique: vi.fn(async () => ({ organizationId: 'org1' })),
+      findUnique: vi.fn(() => Promise.resolve({ organizationId: 'org1' })),
     },
     organizationMembership: {
-      findUnique: vi.fn(async () => state.orgMembership ?? null),
+      findUnique: vi.fn(() => Promise.resolve(state.orgMembership ?? null)),
     },
     workspaceMembership: {
-      findUnique: vi.fn(async () => state.wsMembership ?? null),
+      findUnique: vi.fn(() => Promise.resolve(state.wsMembership ?? null)),
     },
   };
   const redis = {
     client: {
-      get: vi.fn(async () => null),
-      setex: vi.fn(async () => 'OK'),
-      keys: vi.fn(async () => []),
-      del: vi.fn(async () => 0),
+      get: vi.fn(() => Promise.resolve(null)),
+      setex: vi.fn(() => Promise.resolve('OK')),
+      keys: vi.fn(() => Promise.resolve([])),
+      del: vi.fn(() => Promise.resolve(0)),
     },
   };
   return new PermissionResolver(prisma as never, redis as never);
