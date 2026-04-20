@@ -3,6 +3,8 @@ export type {
   AuditLog,
   HealthCheck,
   Invitation,
+  MetaAdAccount,
+  MetaConnection,
   Organization,
   OrganizationMembership,
   Permission,
@@ -13,7 +15,13 @@ export type {
   Workspace,
   WorkspaceMembership,
 } from '../generated/client';
-export { InvitationStatus, OrgRole, PrismaClient, WorkspaceRole } from '../generated/client';
+export {
+  InvitationStatus,
+  MetaConnectionStatus,
+  OrgRole,
+  PrismaClient,
+  WorkspaceRole,
+} from '../generated/client';
 
 export { PERMISSIONS, PERMISSION_KEYS } from './data/permissions';
 export type { PermissionDef, PermissionKey } from './data/permissions';

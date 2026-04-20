@@ -3,6 +3,9 @@
 // Module 01: HealthCheck.
 // Module 02: auth surface — User, Organization, Workspace, memberships, RBAC,
 // Session, Invitation, AuditLog.
+// Module 03: Meta Ads connection — MetaConnection (encrypted Meta tokens
+// stored per workspace), MetaAdAccount (cached ad-account list per
+// connection).
 //
 // Hashing strategy (anchor decision):
 //   - bcrypt:  passwordHash, mfaBackupCodes       (user-derived, low-entropy)
@@ -41,6 +44,12 @@ enum WorkspaceRole {
 enum InvitationStatus {
   PENDING
   ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+enum MetaConnectionStatus {
+  ACTIVE
   EXPIRED
   REVOKED
 }
@@ -138,8 +147,9 @@ model Workspace {
   updatedAt      DateTime  @updatedAt @map("updated_at")
   deletedAt      DateTime? @map("deleted_at")
 
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  memberships    WorkspaceMembership[]
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  memberships      WorkspaceMembership[]
+  metaConnections  MetaConnection[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -259,6 +269,60 @@ model Invitation {
   @@index([tokenHash])
   @@index([organizationId, workspaceId])
   @@map("invitations")
+}
+
+// ==================================================================
+// Meta Ads connection (Module 03)
+// ==================================================================
+
+/// MetaConnection — one row per (workspace, connected Meta business user).
+///
+/// Tokens are AES-256-GCM ciphertext (`v1:` prefix), with the workspaceId
+/// as additional authenticated data so a leaked ciphertext can't be
+/// replayed against another tenant.
+model MetaConnection {
+  id            String               @id @default(cuid())
+  workspaceId   String               @map("workspace_id")
+  metaUserId    String               @map("meta_user_id") // Facebook/Meta user id
+  displayName   String               @map("display_name")
+  accessToken   String               @map("access_token")    // ciphertext
+  refreshToken  String?              @map("refresh_token")   // ciphertext, nullable
+  scopes        String[]             @map("scopes")          // ['ads_management', ...]
+  expiresAt     DateTime?            @map("expires_at")
+  status        MetaConnectionStatus @default(ACTIVE)
+  connectedById String               @map("connected_by_id") // user.id who completed OAuth
+  lastRotatedAt DateTime?            @map("last_rotated_at")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+
+  workspace  Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  adAccounts MetaAdAccount[]
+
+  @@unique([workspaceId, metaUserId])
+  @@index([workspaceId])
+  @@index([status])
+  @@map("meta_connections")
+}
+
+/// MetaAdAccount — local cache of ad accounts visible through a
+/// MetaConnection. Refreshed on demand; not the source of truth.
+model MetaAdAccount {
+  id              String   @id @default(cuid())
+  connectionId    String   @map("connection_id")
+  metaAdAccountId String   @map("meta_ad_account_id") // act_xxxxx
+  name            String
+  currency        String
+  timezone        String?
+  status          String?  // ACTIVE | DISABLED | PENDING_REVIEW etc.
+  syncedAt        DateTime @default(now()) @map("synced_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  connection MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, metaAdAccountId])
+  @@index([connectionId])
+  @@map("meta_ad_accounts")
 }
 
 // ==================================================================
