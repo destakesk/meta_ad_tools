@@ -4,8 +4,13 @@ import { ConfigService } from '@nestjs/config';
 import type {
   AuthorizeUrlInput,
   ExchangeCodeInput,
+  FetchCampaignsInput,
+  FetchInsightsInput,
   MetaAdAccountSnapshot,
   MetaApiClient,
+  MetaCampaignSnapshot,
+  MetaCampaignStatus,
+  MetaInsightSnapshot,
   MetaTokenSet,
   MetaUserProfile,
 } from './meta-api-client.interface.js';
@@ -123,6 +128,108 @@ export class RealMetaApiClient implements MetaApiClient {
     }));
   }
 
+  async fetchCampaigns(input: FetchCampaignsInput): Promise<MetaCampaignSnapshot[]> {
+    const url = new URL(`${GRAPH_BASE}/${input.metaAdAccountId}/campaigns`);
+    url.searchParams.set(
+      'fields',
+      [
+        'id',
+        'name',
+        'objective',
+        'status',
+        'daily_budget',
+        'lifetime_budget',
+        'currency',
+        'start_time',
+        'stop_time',
+      ].join(','),
+    );
+    url.searchParams.set('limit', '250');
+    url.searchParams.set('access_token', input.accessToken);
+    const res = await fetch(url);
+    if (!res.ok) throw new BadGatewayException('meta_campaigns_fetch_failed');
+    const body = (await res.json()) as {
+      data: {
+        id: string;
+        name: string;
+        objective?: string;
+        status?: string;
+        daily_budget?: string;
+        lifetime_budget?: string;
+        currency?: string;
+        start_time?: string;
+        stop_time?: string;
+      }[];
+    };
+    return body.data.map((c) => ({
+      metaCampaignId: c.id,
+      name: c.name,
+      objective: c.objective ?? null,
+      status: normaliseCampaignStatus(c.status),
+      dailyBudgetCents: c.daily_budget ?? null,
+      lifetimeBudgetCents: c.lifetime_budget ?? null,
+      currency: c.currency ?? null,
+      startTime: c.start_time ?? null,
+      endTime: c.stop_time ?? null,
+    }));
+  }
+
+  async fetchInsights(input: FetchInsightsInput): Promise<MetaInsightSnapshot[]> {
+    const url = new URL(`${GRAPH_BASE}/${input.metaAdAccountId}/insights`);
+    url.searchParams.set('level', 'campaign');
+    url.searchParams.set('time_increment', '1');
+    url.searchParams.set('time_range', JSON.stringify({ since: input.from, until: input.to }));
+    url.searchParams.set(
+      'filtering',
+      JSON.stringify([{ field: 'campaign.id', operator: 'IN', value: input.metaCampaignIds }]),
+    );
+    url.searchParams.set(
+      'fields',
+      [
+        'campaign_id',
+        'date_start',
+        'impressions',
+        'clicks',
+        'spend',
+        'conversions',
+        'reach',
+        'frequency',
+        'cpm',
+        'ctr',
+      ].join(','),
+    );
+    url.searchParams.set('limit', '500');
+    url.searchParams.set('access_token', input.accessToken);
+    const res = await fetch(url);
+    if (!res.ok) throw new BadGatewayException('meta_insights_fetch_failed');
+    const body = (await res.json()) as {
+      data: {
+        campaign_id: string;
+        date_start: string;
+        impressions?: string;
+        clicks?: string;
+        spend?: string;
+        conversions?: string;
+        reach?: string;
+        frequency?: string;
+        cpm?: string;
+        ctr?: string;
+      }[];
+    };
+    return body.data.map((row) => ({
+      metaCampaignId: row.campaign_id,
+      date: row.date_start,
+      impressions: row.impressions ?? '0',
+      clicks: row.clicks ?? '0',
+      spendCents: toMinorUnits(row.spend ?? '0'),
+      conversions: row.conversions ?? '0',
+      reach: row.reach ?? '0',
+      frequency: row.frequency !== undefined ? Number(row.frequency) : 0,
+      cpmCents: row.cpm !== undefined ? toMinorUnits(row.cpm) : null,
+      ctr: row.ctr !== undefined ? Number(row.ctr) : null,
+    }));
+  }
+
   async revoke(accessToken: string): Promise<void> {
     const url = new URL(`${GRAPH_BASE}/me/permissions`);
     url.searchParams.set('access_token', accessToken);
@@ -131,4 +238,30 @@ export class RealMetaApiClient implements MetaApiClient {
       this.logger.warn({ status: res.status }, 'meta revoke responded non-2xx');
     }
   }
+}
+
+function normaliseCampaignStatus(raw: string | undefined): MetaCampaignStatus {
+  switch ((raw ?? '').toUpperCase()) {
+    case 'ACTIVE':
+      return 'ACTIVE';
+    case 'PAUSED':
+      return 'PAUSED';
+    case 'DELETED':
+      return 'DELETED';
+    case 'ARCHIVED':
+      return 'ARCHIVED';
+    default:
+      return 'UNKNOWN';
+  }
+}
+
+/**
+ * Graph returns spend + cpm in the ad account's currency MAJOR units
+ * (`"12.34"` for 12 dollars 34 cents). We store everything in minor units
+ * to keep downstream aggregation integer-safe; multiply by 100 and round.
+ */
+function toMinorUnits(major: string): string {
+  const n = Number(major);
+  if (!Number.isFinite(n)) return '0';
+  return Math.round(n * 100).toString();
 }

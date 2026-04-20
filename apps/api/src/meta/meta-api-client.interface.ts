@@ -34,6 +34,47 @@ export interface MetaAdAccountSnapshot {
   status: string | null;
 }
 
+export type MetaCampaignStatus = 'ACTIVE' | 'PAUSED' | 'DELETED' | 'ARCHIVED' | 'UNKNOWN';
+
+export interface MetaCampaignSnapshot {
+  metaCampaignId: string;
+  name: string;
+  objective: string | null;
+  status: MetaCampaignStatus;
+  /** BigInt-safe string representation of minor units. */
+  dailyBudgetCents: string | null;
+  lifetimeBudgetCents: string | null;
+  currency: string | null;
+  startTime: string | null; // ISO 8601
+  endTime: string | null;
+}
+
+export interface FetchCampaignsInput {
+  accessToken: string;
+  metaAdAccountId: string; // act_xxxxx
+}
+
+export interface MetaInsightSnapshot {
+  metaCampaignId: string;
+  date: string; // YYYY-MM-DD
+  impressions: string; // BigInt-safe string
+  clicks: string;
+  spendCents: string;
+  conversions: string;
+  reach: string;
+  frequency: number;
+  cpmCents: string | null;
+  ctr: number | null;
+}
+
+export interface FetchInsightsInput {
+  accessToken: string;
+  metaAdAccountId: string;
+  metaCampaignIds: string[];
+  from: string; // YYYY-MM-DD inclusive
+  to: string; // YYYY-MM-DD inclusive
+}
+
 export interface AuthorizeUrlInput {
   state: string;
   redirectUri: string;
@@ -60,6 +101,12 @@ export interface MetaApiClient {
 
   /** List ad accounts visible to this access token. */
   fetchAdAccounts(accessToken: string): Promise<MetaAdAccountSnapshot[]>;
+
+  /** List campaigns under an ad account. Cached into `campaigns` table. */
+  fetchCampaigns(input: FetchCampaignsInput): Promise<MetaCampaignSnapshot[]>;
+
+  /** Daily insights rows for a set of campaigns. Cached into `meta_insight_snapshots`. */
+  fetchInsights(input: FetchInsightsInput): Promise<MetaInsightSnapshot[]>;
 
   /**
    * Best-effort token revocation on Meta's side. The local row is always
