@@ -1,5 +1,6 @@
 export * from './client';
 export type {
+  AdSet,
   AuditLog,
   Campaign,
   HealthCheck,
@@ -18,6 +19,7 @@ export type {
   WorkspaceMembership,
 } from '../generated/client';
 export {
+  AdSetStatus,
   CampaignStatus,
   InvitationStatus,
   MetaConnectionStatus,

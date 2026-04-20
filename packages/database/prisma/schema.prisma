@@ -65,6 +65,14 @@ enum CampaignStatus {
   UNKNOWN
 }
 
+enum AdSetStatus {
+  ACTIVE
+  PAUSED
+  DELETED
+  ARCHIVED
+  UNKNOWN
+}
+
 // ==================================================================
 // Health (Module 01)
 // ==================================================================
@@ -363,11 +371,42 @@ model Campaign {
 
   adAccount MetaAdAccount         @relation(fields: [adAccountId], references: [id], onDelete: Cascade)
   insights  MetaInsightSnapshot[]
+  adSets    AdSet[]
 
   @@unique([adAccountId, metaCampaignId])
   @@index([workspaceId, status])
   @@index([adAccountId])
   @@map("campaigns")
+}
+
+/// AdSet — one level below Campaign. Carries its own budget, optimization
+/// goal, and targeting JSON. Budgets follow the same BigInt minor-unit
+/// convention as Campaign; targeting is opaque JSON because Meta's shape
+/// is deep and evolves frequently.
+model AdSet {
+  id                  String      @id @default(cuid())
+  workspaceId         String      @map("workspace_id")
+  campaignId          String      @map("campaign_id")
+  metaAdSetId         String      @map("meta_adset_id")
+  name                String
+  status              AdSetStatus @default(UNKNOWN)
+  optimizationGoal    String?     @map("optimization_goal")
+  billingEvent        String?     @map("billing_event")
+  dailyBudgetCents    BigInt?     @map("daily_budget_cents")
+  lifetimeBudgetCents BigInt?     @map("lifetime_budget_cents")
+  startTime           DateTime?   @map("start_time")
+  endTime             DateTime?   @map("end_time")
+  targeting           Json?
+  syncedAt            DateTime    @default(now()) @map("synced_at")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, metaAdSetId])
+  @@index([workspaceId, status])
+  @@index([campaignId])
+  @@map("ad_sets")
 }
 
 /// MetaInsightSnapshot — one row per (campaign, date). Append-only as a
