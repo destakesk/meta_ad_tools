@@ -35,12 +35,26 @@ export function Topbar(): React.ReactElement {
 
         <nav className="flex items-center gap-1 text-sm">
           {inWorkspace ? (
-            <Link
-              href={`/w/${params.slug ?? ''}`}
-              className="rounded-md px-3 py-1.5 hover:bg-[hsl(var(--accent))]"
-            >
-              Workspace
-            </Link>
+            <>
+              <Link
+                href={`/w/${params.slug ?? ''}`}
+                className="rounded-md px-3 py-1.5 hover:bg-[hsl(var(--accent))]"
+              >
+                Workspace
+              </Link>
+              <Link
+                href={`/w/${params.slug ?? ''}/campaigns`}
+                className="rounded-md px-3 py-1.5 hover:bg-[hsl(var(--accent))]"
+              >
+                Kampanyalar
+              </Link>
+              <Link
+                href={`/w/${params.slug ?? ''}/insights`}
+                className="rounded-md px-3 py-1.5 hover:bg-[hsl(var(--accent))]"
+              >
+                İçgörüler
+              </Link>
+            </>
           ) : null}
           <Link href="/" className="rounded-md px-3 py-1.5 hover:bg-[hsl(var(--accent))]">
             Ana ekran
