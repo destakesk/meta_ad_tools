@@ -45,21 +45,22 @@ export default function WorkspaceHome(): React.ReactElement {
 
       <Card>
         <CardHeader>
-          <CardTitle>Buradan başla</CardTitle>
-          <CardDescription>
-            Module 03 ile birlikte Meta Ads bağlantısı, kampanya yönetimi ve raporlama bu ekrana
-            gelir.
-          </CardDescription>
+          <CardTitle>Hızlı erişim</CardTitle>
+          <CardDescription>Workspace içindeki ana ekranlar.</CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-[hsl(var(--muted-foreground))]">
-          Şimdilik içerik yok. Workspace’e ekip üyesi davet etmek için{' '}
-          <Link
-            href="/settings/members"
-            className="font-medium text-[hsl(var(--foreground))] hover:underline"
-          >
-            Ayarlar → Üyeler
-          </Link>{' '}
-          kısmına geçebilirsin.
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/w/${w.slug}/campaigns`}>Kampanyalar</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/w/${w.slug}/creatives`}>Creative kütüphanesi</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/w/${w.slug}/insights`}>İçgörüler</Link>
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/settings/members">Ekip üyeleri</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>
