@@ -153,6 +153,72 @@ export interface DeleteAdSetInput {
   metaAdSetId: string;
 }
 
+export type MetaAdStatus = 'ACTIVE' | 'PAUSED' | 'DELETED' | 'ARCHIVED' | 'UNKNOWN';
+
+export interface MetaAdSnapshot {
+  metaAdId: string;
+  name: string;
+  status: MetaAdStatus;
+  effectiveStatus: string | null;
+  /** metaCreativeId reference — the creative must already exist in the creative library. */
+  metaCreativeId: string | null;
+}
+
+export interface FetchAdsInput {
+  accessToken: string;
+  metaAdSetId: string;
+}
+
+export interface CreateAdInput {
+  accessToken: string;
+  metaAdSetId: string;
+  name: string;
+  status: 'ACTIVE' | 'PAUSED';
+  metaCreativeId: string;
+}
+
+export interface UpdateAdInput {
+  accessToken: string;
+  metaAdId: string;
+  name?: string;
+  status?: 'ACTIVE' | 'PAUSED';
+  metaCreativeId?: string;
+}
+
+export interface DeleteAdInput {
+  accessToken: string;
+  metaAdId: string;
+}
+
+export type MetaCreativeKind = 'IMAGE' | 'VIDEO' | 'CAROUSEL' | 'LINK' | 'POST';
+
+export interface MetaCreativeSnapshot {
+  metaCreativeId: string;
+  name: string;
+  kind: MetaCreativeKind;
+  thumbUrl: string | null;
+  objectStorySpec: unknown;
+}
+
+export interface FetchCreativesInput {
+  accessToken: string;
+  metaAdAccountId: string;
+}
+
+export interface CreateCreativeInput {
+  accessToken: string;
+  metaAdAccountId: string;
+  name: string;
+  kind: MetaCreativeKind;
+  thumbUrl?: string;
+  objectStorySpec?: unknown;
+}
+
+export interface DeleteCreativeInput {
+  accessToken: string;
+  metaCreativeId: string;
+}
+
 export interface AuthorizeUrlInput {
   state: string;
   redirectUri: string;
@@ -206,6 +272,27 @@ export interface MetaApiClient {
 
   /** Delete (flip status to DELETED on Meta's side). */
   deleteAdSet(input: DeleteAdSetInput): Promise<void>;
+
+  /** List ads under an ad set. Cached into `ads`. */
+  fetchAds(input: FetchAdsInput): Promise<MetaAdSnapshot[]>;
+
+  /** Create an ad under an ad set. */
+  createAd(input: CreateAdInput): Promise<MetaAdSnapshot>;
+
+  /** Update an existing ad. */
+  updateAd(input: UpdateAdInput): Promise<MetaAdSnapshot>;
+
+  /** Delete (flip status to DELETED on Meta's side). */
+  deleteAd(input: DeleteAdInput): Promise<void>;
+
+  /** List creatives owned by an ad account. Cached into `creatives`. */
+  fetchCreatives(input: FetchCreativesInput): Promise<MetaCreativeSnapshot[]>;
+
+  /** Upload a new creative to an ad account. */
+  createCreative(input: CreateCreativeInput): Promise<MetaCreativeSnapshot>;
+
+  /** Delete a creative. */
+  deleteCreative(input: DeleteCreativeInput): Promise<void>;
 
   /**
    * Best-effort token revocation on Meta's side. The local row is always

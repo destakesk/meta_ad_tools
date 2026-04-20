@@ -3,23 +3,34 @@ import { ConfigService } from '@nestjs/config';
 
 import type {
   AuthorizeUrlInput,
+  CreateAdInput,
   CreateAdSetInput,
   CreateCampaignInput,
+  CreateCreativeInput,
+  DeleteAdInput,
   DeleteAdSetInput,
   DeleteCampaignInput,
+  DeleteCreativeInput,
   ExchangeCodeInput,
   FetchAdSetsInput,
+  FetchAdsInput,
   FetchCampaignsInput,
+  FetchCreativesInput,
   FetchInsightsInput,
   MetaAdAccountSnapshot,
   MetaAdSetSnapshot,
   MetaAdSetStatus,
+  MetaAdSnapshot,
+  MetaAdStatus,
   MetaApiClient,
   MetaCampaignSnapshot,
   MetaCampaignStatus,
+  MetaCreativeKind,
+  MetaCreativeSnapshot,
   MetaInsightSnapshot,
   MetaTokenSet,
   MetaUserProfile,
+  UpdateAdInput,
   UpdateAdSetInput,
   UpdateCampaignInput,
 } from './meta-api-client.interface.js';
@@ -419,6 +430,118 @@ export class RealMetaApiClient implements MetaApiClient {
     return toAdSetSnapshot((await res.json()) as RawAdSet);
   }
 
+  async fetchAds(input: FetchAdsInput): Promise<MetaAdSnapshot[]> {
+    const url = new URL(`${GRAPH_BASE}/${input.metaAdSetId}/ads`);
+    url.searchParams.set('fields', 'id,name,status,effective_status,creative{id}');
+    url.searchParams.set('limit', '250');
+    url.searchParams.set('access_token', input.accessToken);
+    const res = await fetch(url);
+    if (!res.ok) throw new BadGatewayException('meta_ads_fetch_failed');
+    const body = (await res.json()) as { data: RawAd[] };
+    return body.data.map(toAdSnapshot);
+  }
+
+  async createAd(input: CreateAdInput): Promise<MetaAdSnapshot> {
+    const adsetRes = await fetch(
+      `${GRAPH_BASE}/${input.metaAdSetId}?fields=account_id&access_token=${input.accessToken}`,
+    );
+    if (!adsetRes.ok) throw new BadGatewayException('meta_adset_fetch_failed');
+    const { account_id } = (await adsetRes.json()) as { account_id: string };
+
+    const body = new URLSearchParams({
+      name: input.name,
+      status: input.status,
+      adset_id: input.metaAdSetId,
+      creative: JSON.stringify({ creative_id: input.metaCreativeId }),
+      access_token: input.accessToken,
+    });
+    const res = await fetch(`${GRAPH_BASE}/act_${account_id}/ads`, { method: 'POST', body });
+    if (!res.ok) throw new BadGatewayException('meta_ad_create_failed');
+    const { id } = (await res.json()) as { id: string };
+    return this.fetchAdById(input.accessToken, id);
+  }
+
+  async updateAd(input: UpdateAdInput): Promise<MetaAdSnapshot> {
+    const body = new URLSearchParams({ access_token: input.accessToken });
+    if (input.name !== undefined) body.set('name', input.name);
+    if (input.status !== undefined) body.set('status', input.status);
+    if (input.metaCreativeId !== undefined) {
+      body.set('creative', JSON.stringify({ creative_id: input.metaCreativeId }));
+    }
+    const res = await fetch(`${GRAPH_BASE}/${input.metaAdId}`, { method: 'POST', body });
+    if (!res.ok) throw new BadGatewayException('meta_ad_update_failed');
+    return this.fetchAdById(input.accessToken, input.metaAdId);
+  }
+
+  async deleteAd(input: DeleteAdInput): Promise<void> {
+    const url = new URL(`${GRAPH_BASE}/${input.metaAdId}`);
+    url.searchParams.set('access_token', input.accessToken);
+    const res = await fetch(url, { method: 'DELETE' });
+    if (!res.ok) throw new BadGatewayException('meta_ad_delete_failed');
+  }
+
+  private async fetchAdById(accessToken: string, metaAdId: string): Promise<MetaAdSnapshot> {
+    const url = new URL(`${GRAPH_BASE}/${metaAdId}`);
+    url.searchParams.set('fields', 'id,name,status,effective_status,creative{id}');
+    url.searchParams.set('access_token', accessToken);
+    const res = await fetch(url);
+    if (!res.ok) throw new BadGatewayException('meta_ad_fetch_failed');
+    return toAdSnapshot((await res.json()) as RawAd);
+  }
+
+  async fetchCreatives(input: FetchCreativesInput): Promise<MetaCreativeSnapshot[]> {
+    const url = new URL(`${GRAPH_BASE}/${input.metaAdAccountId}/adcreatives`);
+    url.searchParams.set(
+      'fields',
+      'id,name,object_type,thumbnail_url,image_url,video_id,object_story_spec',
+    );
+    url.searchParams.set('limit', '250');
+    url.searchParams.set('access_token', input.accessToken);
+    const res = await fetch(url);
+    if (!res.ok) throw new BadGatewayException('meta_creatives_fetch_failed');
+    const body = (await res.json()) as { data: RawCreative[] };
+    return body.data.map(toCreativeSnapshot);
+  }
+
+  async createCreative(input: CreateCreativeInput): Promise<MetaCreativeSnapshot> {
+    const body = new URLSearchParams({
+      name: input.name,
+      access_token: input.accessToken,
+    });
+    if (input.objectStorySpec !== undefined) {
+      body.set('object_story_spec', JSON.stringify(input.objectStorySpec));
+    }
+    const res = await fetch(`${GRAPH_BASE}/${input.metaAdAccountId}/adcreatives`, {
+      method: 'POST',
+      body,
+    });
+    if (!res.ok) throw new BadGatewayException('meta_creative_create_failed');
+    const { id } = (await res.json()) as { id: string };
+    return this.fetchCreativeById(input.accessToken, id);
+  }
+
+  async deleteCreative(input: DeleteCreativeInput): Promise<void> {
+    const url = new URL(`${GRAPH_BASE}/${input.metaCreativeId}`);
+    url.searchParams.set('access_token', input.accessToken);
+    const res = await fetch(url, { method: 'DELETE' });
+    if (!res.ok) throw new BadGatewayException('meta_creative_delete_failed');
+  }
+
+  private async fetchCreativeById(
+    accessToken: string,
+    metaCreativeId: string,
+  ): Promise<MetaCreativeSnapshot> {
+    const url = new URL(`${GRAPH_BASE}/${metaCreativeId}`);
+    url.searchParams.set(
+      'fields',
+      'id,name,object_type,thumbnail_url,image_url,video_id,object_story_spec',
+    );
+    url.searchParams.set('access_token', accessToken);
+    const res = await fetch(url);
+    if (!res.ok) throw new BadGatewayException('meta_creative_fetch_failed');
+    return toCreativeSnapshot((await res.json()) as RawCreative);
+  }
+
   async revoke(accessToken: string): Promise<void> {
     const url = new URL(`${GRAPH_BASE}/me/permissions`);
     url.searchParams.set('access_token', accessToken);
@@ -496,4 +619,77 @@ function toMinorUnits(major: string): string {
   const n = Number(major);
   if (!Number.isFinite(n)) return '0';
   return Math.round(n * 100).toString();
+}
+
+interface RawAd {
+  id: string;
+  name: string;
+  status?: string;
+  effective_status?: string;
+  creative?: { id?: string };
+}
+
+function toAdSnapshot(a: RawAd): MetaAdSnapshot {
+  return {
+    metaAdId: a.id,
+    name: a.name,
+    status: normaliseAdStatus(a.status),
+    effectiveStatus: a.effective_status ?? null,
+    metaCreativeId: a.creative?.id ?? null,
+  };
+}
+
+function normaliseAdStatus(raw: string | undefined): MetaAdStatus {
+  switch ((raw ?? '').toUpperCase()) {
+    case 'ACTIVE':
+      return 'ACTIVE';
+    case 'PAUSED':
+      return 'PAUSED';
+    case 'DELETED':
+      return 'DELETED';
+    case 'ARCHIVED':
+      return 'ARCHIVED';
+    default:
+      return 'UNKNOWN';
+  }
+}
+
+interface RawCreative {
+  id: string;
+  name?: string;
+  object_type?: string;
+  thumbnail_url?: string;
+  image_url?: string;
+  video_id?: string;
+  object_story_spec?: unknown;
+}
+
+function toCreativeSnapshot(c: RawCreative): MetaCreativeSnapshot {
+  return {
+    metaCreativeId: c.id,
+    name: c.name ?? `creative_${c.id}`,
+    kind: normaliseCreativeKind(c.object_type, c.video_id !== undefined),
+    thumbUrl: c.thumbnail_url ?? c.image_url ?? null,
+    objectStorySpec: c.object_story_spec ?? null,
+  };
+}
+
+function normaliseCreativeKind(
+  objectType: string | undefined,
+  hasVideo: boolean,
+): MetaCreativeKind {
+  switch ((objectType ?? '').toUpperCase()) {
+    case 'VIDEO':
+      return 'VIDEO';
+    case 'PHOTO':
+      return 'IMAGE';
+    case 'SHARE':
+      return 'LINK';
+    case 'STATUS':
+      return 'POST';
+    case 'OFFER':
+    case 'INVALID':
+    default:
+      return hasVideo ? 'VIDEO' : 'IMAGE';
+  }
 }

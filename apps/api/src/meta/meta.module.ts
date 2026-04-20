@@ -4,10 +4,14 @@ import { ConfigService } from '@nestjs/config';
 import { AuthModule } from '../auth/auth.module.js';
 import { CryptoModule } from '../crypto/crypto.module.js';
 
+import { AdSetAdsController, AdsController } from './ads.controller.js';
+import { AdsService } from './ads.service.js';
 import { AdSetsController, CampaignAdSetsController } from './adsets.controller.js';
 import { AdSetsService } from './adsets.service.js';
 import { CampaignsController, InsightsController } from './campaigns.controller.js';
 import { CampaignsService } from './campaigns.service.js';
+import { AdAccountCreativesController, CreativesController } from './creatives.controller.js';
+import { CreativesService } from './creatives.service.js';
 import { InsightsService } from './insights.service.js';
 import { META_API_CLIENT } from './meta-api-client.interface.js';
 import { MetaCallbackController } from './meta-callback.controller.js';
@@ -27,12 +31,18 @@ import type { AppConfig } from '../config/configuration.js';
     InsightsController,
     CampaignAdSetsController,
     AdSetsController,
+    AdSetAdsController,
+    AdsController,
+    AdAccountCreativesController,
+    CreativesController,
   ],
   providers: [
     MetaConnectionsService,
     CampaignsService,
     InsightsService,
     AdSetsService,
+    AdsService,
+    CreativesService,
     MockMetaApiClient,
     RealMetaApiClient,
     {
@@ -48,6 +58,13 @@ import type { AppConfig } from '../config/configuration.js';
       },
     },
   ],
-  exports: [MetaConnectionsService, CampaignsService, InsightsService, AdSetsService],
+  exports: [
+    MetaConnectionsService,
+    CampaignsService,
+    InsightsService,
+    AdSetsService,
+    AdsService,
+    CreativesService,
+  ],
 })
 export class MetaModule {}

@@ -4,21 +4,30 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import type {
   AuthorizeUrlInput,
+  CreateAdInput,
   CreateAdSetInput,
   CreateCampaignInput,
+  CreateCreativeInput,
+  DeleteAdInput,
   DeleteAdSetInput,
   DeleteCampaignInput,
+  DeleteCreativeInput,
   ExchangeCodeInput,
   FetchAdSetsInput,
+  FetchAdsInput,
   FetchCampaignsInput,
+  FetchCreativesInput,
   FetchInsightsInput,
   MetaAdAccountSnapshot,
   MetaAdSetSnapshot,
+  MetaAdSnapshot,
   MetaApiClient,
   MetaCampaignSnapshot,
+  MetaCreativeSnapshot,
   MetaInsightSnapshot,
   MetaTokenSet,
   MetaUserProfile,
+  UpdateAdInput,
   UpdateAdSetInput,
   UpdateCampaignInput,
 } from './meta-api-client.interface.js';
@@ -69,6 +78,8 @@ function getOrInitStore(metaAdAccountId: string): MetaCampaignSnapshot[] {
 export function __resetMockCampaignStore(): void {
   mockCampaignStore.clear();
   mockAdSetStore.clear();
+  mockAdStore.clear();
+  mockCreativeStore.clear();
 }
 
 /**
@@ -109,6 +120,68 @@ function getOrInitAdSetStore(metaCampaignId: string): MetaAdSetSnapshot[] {
       },
     ];
     mockAdSetStore.set(metaCampaignId, list);
+  }
+  return list;
+}
+
+/**
+ * Per-ad-set ad store. Seeded on first read so a freshly-created ad set
+ * with no manual writes still returns a usable list.
+ */
+const mockAdStore = new Map<string, MetaAdSnapshot[]>();
+
+function getOrInitAdStore(metaAdSetId: string): MetaAdSnapshot[] {
+  let list = mockAdStore.get(metaAdSetId);
+  if (!list) {
+    const suffix = metaAdSetId.slice(-6);
+    list = [
+      {
+        metaAdId: `ad_${suffix}_01`,
+        name: `Primary Ad — ${suffix}`,
+        status: 'ACTIVE',
+        effectiveStatus: 'ACTIVE',
+        metaCreativeId: `creative_seed_${suffix}_01`,
+      },
+      {
+        metaAdId: `ad_${suffix}_02`,
+        name: `Variant B — ${suffix}`,
+        status: 'PAUSED',
+        effectiveStatus: 'PAUSED',
+        metaCreativeId: `creative_seed_${suffix}_02`,
+      },
+    ];
+    mockAdStore.set(metaAdSetId, list);
+  }
+  return list;
+}
+
+/**
+ * Per-ad-account creative store. Seeded on first read; writes mutate in
+ * place. Creatives are referenced by metaCreativeId from ads.
+ */
+const mockCreativeStore = new Map<string, MetaCreativeSnapshot[]>();
+
+function getOrInitCreativeStore(metaAdAccountId: string): MetaCreativeSnapshot[] {
+  let list = mockCreativeStore.get(metaAdAccountId);
+  if (!list) {
+    const shortId = metaAdAccountId.replace('act_', '').slice(-4);
+    list = [
+      {
+        metaCreativeId: `creative_${shortId}_01`,
+        name: `Hero Image — ${shortId}`,
+        kind: 'IMAGE',
+        thumbUrl: `https://cdn.mock/thumb/${shortId}/01.jpg`,
+        objectStorySpec: { image_hash: `hash_${shortId}_01` },
+      },
+      {
+        metaCreativeId: `creative_${shortId}_02`,
+        name: `Product Video — ${shortId}`,
+        kind: 'VIDEO',
+        thumbUrl: `https://cdn.mock/thumb/${shortId}/02.jpg`,
+        objectStorySpec: { video_id: `vid_${shortId}_02` },
+      },
+    ];
+    mockCreativeStore.set(metaAdAccountId, list);
   }
   return list;
 }
@@ -316,6 +389,82 @@ export class MockMetaApiClient implements MetaApiClient {
       }
     }
     throw new Error(`mock: ad set ${input.metaAdSetId} not found`);
+  }
+
+  fetchAds(input: FetchAdsInput): Promise<MetaAdSnapshot[]> {
+    const list = getOrInitAdStore(input.metaAdSetId);
+    return Promise.resolve(list.filter((a) => a.status !== 'DELETED'));
+  }
+
+  createAd(input: CreateAdInput): Promise<MetaAdSnapshot> {
+    const list = getOrInitAdStore(input.metaAdSetId);
+    const snapshot: MetaAdSnapshot = {
+      metaAdId: `ad_${Date.now().toString()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: input.name,
+      status: input.status,
+      effectiveStatus: input.status,
+      metaCreativeId: input.metaCreativeId,
+    };
+    list.push(snapshot);
+    return Promise.resolve(snapshot);
+  }
+
+  updateAd(input: UpdateAdInput): Promise<MetaAdSnapshot> {
+    for (const [, list] of mockAdStore) {
+      const existing = list.find((a) => a.metaAdId === input.metaAdId);
+      if (existing) {
+        if (input.name !== undefined) existing.name = input.name;
+        if (input.status !== undefined) {
+          existing.status = input.status;
+          existing.effectiveStatus = input.status;
+        }
+        if (input.metaCreativeId !== undefined) existing.metaCreativeId = input.metaCreativeId;
+        return Promise.resolve(existing);
+      }
+    }
+    throw new Error(`mock: ad ${input.metaAdId} not found`);
+  }
+
+  deleteAd(input: DeleteAdInput): Promise<void> {
+    for (const [, list] of mockAdStore) {
+      const existing = list.find((a) => a.metaAdId === input.metaAdId);
+      if (existing) {
+        existing.status = 'DELETED';
+        existing.effectiveStatus = 'DELETED';
+        return Promise.resolve();
+      }
+    }
+    throw new Error(`mock: ad ${input.metaAdId} not found`);
+  }
+
+  fetchCreatives(input: FetchCreativesInput): Promise<MetaCreativeSnapshot[]> {
+    const list = getOrInitCreativeStore(input.metaAdAccountId);
+    return Promise.resolve([...list]);
+  }
+
+  createCreative(input: CreateCreativeInput): Promise<MetaCreativeSnapshot> {
+    const list = getOrInitCreativeStore(input.metaAdAccountId);
+    const snapshot: MetaCreativeSnapshot = {
+      metaCreativeId: `creative_${Date.now().toString()}_${Math.random().toString(36).slice(2, 8)}`,
+      name: input.name,
+      kind: input.kind,
+      thumbUrl: input.thumbUrl ?? null,
+      objectStorySpec: input.objectStorySpec ?? null,
+    };
+    list.push(snapshot);
+    return Promise.resolve(snapshot);
+  }
+
+  deleteCreative(input: DeleteCreativeInput): Promise<void> {
+    for (const [accountId, list] of mockCreativeStore) {
+      const idx = list.findIndex((c) => c.metaCreativeId === input.metaCreativeId);
+      if (idx >= 0) {
+        list.splice(idx, 1);
+        if (list.length === 0) mockCreativeStore.delete(accountId);
+        return Promise.resolve();
+      }
+    }
+    throw new Error(`mock: creative ${input.metaCreativeId} not found`);
   }
 
   revoke(_accessToken: string): Promise<void> {

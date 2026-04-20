@@ -77,11 +77,6 @@ class UpdateAdSetDto {
  * Campaign-scoped routes — list, sync, and create live under the parent
  * campaign id. Detail / update / delete use a workspace-scoped /adsets/:id
  * path so the caller doesn't have to thread the campaign id through.
- *
- * The delete permission is `campaign:delete` rather than a dedicated
- * `adset:delete` because the seed catalog from Module 02 doesn't include
- * the latter. Module 07 should add `adset:delete` + `ad:delete` +
- * `creative:delete` and re-gate this route accordingly.
  */
 @Controller('workspaces/:slug/campaigns/:campaignId/adsets')
 @UseGuards(
@@ -194,7 +189,7 @@ export class AdSetsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
-  @RequirePermission('campaign:delete')
+  @RequirePermission('adset:delete')
   async delete(
     @CurrentUser() user: RequestUser,
     @CurrentWorkspace() ws: { workspace: { id: string } },
