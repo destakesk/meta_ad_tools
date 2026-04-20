@@ -32,8 +32,8 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^6.2.1",
-    "prisma": "^6.2.1"
+    "@prisma/client": "^7.7.0",
+    "prisma": "^7.7.0"
   },
   "devDependencies": {
     "@metaflow/eslint-config": "workspace:*",
