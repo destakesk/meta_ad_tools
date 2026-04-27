@@ -33,7 +33,7 @@
     "@nestjs/throttler": "^6.3.0",
     "@react-email/components": "^0.0.32",
     "@react-email/render": "^1.0.4",
-    "@sentry/node": "^8.48.0",
+    "@sentry/node": "^10.50.0",
     "@zxcvbn-ts/core": "^3.0.4",
     "@zxcvbn-ts/language-common": "^3.0.4",
     "@zxcvbn-ts/language-en": "^3.0.2",
